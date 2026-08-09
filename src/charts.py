@@ -528,7 +528,7 @@ def get_license_compliance_chart():
     listings = LISTINGS_DF
     if listings.empty: return {}
 
-    license_by_area = listings.groupby('neighbourhood')['license_status'].value_counts().unstack(fill_value=0)
+    license_by_area = listings.groupby('neighbourhood', observed=False)['license_status'].value_counts().unstack(fill_value=0)
     license_by_area['compliance_pct'] = (
         license_by_area.get('Licensed', 0) /
         (license_by_area.get('Licensed', 0) + license_by_area.get('Unlicensed', 0)) * 100
@@ -790,7 +790,7 @@ Prime entry: **{top_opp.iloc[0]['neighbourhood']}** (Score: {top_opp.iloc[0]['op
 def get_stakeholder_network_chart():
     listings = LISTINGS_DF
     if listings.empty: return {}
-    tree = listings.groupby(['host_category', 'neighbourhood']).agg(
+    tree = listings.groupby(['host_category', 'neighbourhood'], observed=False).agg(
         total_revenue=('est_annual_revenue', 'sum'),
         listing_count=('id', 'count'), avg_price=('price', 'mean'),
     ).reset_index()
@@ -806,7 +806,7 @@ def get_stakeholder_network_chart():
 def get_professionalization_chart():
     listings = LISTINGS_DF
     if listings.empty: return {}
-    prof = listings.groupby('neighbourhood')['host_category'].value_counts().unstack(fill_value=0)
+    prof = listings.groupby('neighbourhood', observed=False)['host_category'].value_counts().unstack(fill_value=0)
     prof_pct = prof.div(prof.sum(axis=1), axis=0) * 100
     prof_pct = prof_pct.sort_values('Professional (6+)', ascending=True)
     fig = go.Figure()

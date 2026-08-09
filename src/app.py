@@ -1,8 +1,7 @@
 # app.py
 """
-Inside Airbnb Amsterdam — Business Intelligence Dashboard
-Run with: python app.py
-Open: http://localhost:8051
+Inside Airbnb Amsterdam — Industrial-Grade Strategic Intelligence Dashboard
+Run: python app.py  →  http://localhost:8051
 """
 
 import os
@@ -17,16 +16,15 @@ PORT = int(os.environ.get("PORT", 8051))
 DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 HOST = os.environ.get("HOST", "127.0.0.1")
 
-# ── App Initialization ────────────────────────────────
+# ── App ───────────────────────────────────────────────
 app = dash.Dash(
     __name__,
-    external_stylesheets=[dbc.themes.MINTY, dbc.icons.BOOTSTRAP],
-    title="Airbnb Amsterdam — Business Intelligence",
+    external_stylesheets=[dbc.themes.DARKLY, dbc.icons.BOOTSTRAP],
+    title="Airbnb Amsterdam — Strategic Intelligence",
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     suppress_callback_exceptions=True,
 )
 
-# Expose Flask server for Gunicorn
 server = app.server
 
 # ── Layout & Callbacks ────────────────────────────────
@@ -36,15 +34,12 @@ register_callbacks(app)
 # ── Main ─────────────────────────────────────────────
 if __name__ == "__main__":
     print(f"\n{'='*60}")
-    print(f"  🏠 Inside Airbnb Amsterdam — Business Intelligence Dashboard")
-    print(f"  🌐 Starting on http://{HOST}:{PORT}")
-    print(f"  📊 7 Tabs: Overview | BI | Policy | Explorer | ROI Calc | Strategic Intel | About")
-    print(f"  🔄 Live refresh: every 5 minutes")
+    print(f"  🏠 Airbnb Amsterdam — Strategic Intelligence Dashboard")
+    print(f"  🌐 http://{HOST}:{PORT}")
+    print(f"  📊 7 Pages | 20+ Charts | Early Warnings | Auto-Briefings")
+    print(f"  🎨 Industrial Dark Theme | 🔄 Live Refresh 5min")
     print(f"{'='*60}\n")
     app.run(
-        debug=DEBUG,
-        host=HOST,
-        port=PORT,
-        dev_tools_hot_reload=False,
-        use_reloader=False,
+        debug=DEBUG, host=HOST, port=PORT,
+        dev_tools_hot_reload=False, use_reloader=False,
     )
