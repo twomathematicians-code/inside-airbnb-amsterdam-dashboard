@@ -1,164 +1,142 @@
-# 🏠 Inside Airbnb Gent — Housing Displacement Dashboard
+# 🏠 Inside Airbnb Gent — Business Intelligence Dashboard
 
-**Production-grade interactive geospatial dashboard** analyzing the impact of short-term rentals on housing availability in Ghent, Belgium. Built with **Dash + Plotly**, featuring real-time cross-filtering, choropleth mapping, and statistical distribution analysis.
+**Production-grade interactive analytics platform** for housing market intelligence, built with **Dash + Plotly**. Multi-tab dashboard with live refresh, KPI monitoring, and cloud deployment — designed for property owners, investors, tourism boards, and city regulators.
 
-## 📸 Visualizations
-
-### Price Distribution Analysis
 <p align="center">
-  <img src="assets/chart-price-histogram.png" alt="Price Distribution Histogram" width="800"/>
+  <img src="assets/chart-map.png" alt="Geospatial Analysis" width="800"/>
 </p>
-*Interactive histogram with range slider — filter listings by nightly price to identify market segments and pricing density.*
-
-### Housing Displacement by Room Type
-<p align="center">
-  <img src="assets/chart-room-type-pie.png" alt="Room Type Pie Chart" width="600"/>
-</p>
-*Proportion of entire homes vs. shared/private rooms — quantifies units removed from long-term housing. Filterable by neighbourhood.*
-
-### Geospatial Concentration & Price Inequality
-<p align="center">
-  <img src="assets/chart-map.png" alt="Choropleth Map with Scatter Overlay" width="800"/>
-</p>
-*Choropleth map of average price per neighbourhood + individual listing scatter overlay. Master neighbourhood filter drives both the map and pie chart simultaneously.*
 
 ---
 
-## 📊 Overview
+## 🎯 Business Problems This Dashboard Solves
 
-This dashboard transforms raw Airbnb listing data into actionable intelligence for housing policy. It reveals three critical dimensions of the short-term rental market:
-
-| Dimension | Visualization | Insight |
+| Stakeholder | Problem | Solution |
 |---|---|---|
-| **Price Structure** | Histogram with range slider | Price distribution density & market segmentation |
-| **Housing Displacement** | Interactive pie chart | Share of entire homes removed from long-term market |
-| **Spatial Inequality** | Choropleth + scatter overlay | Geographic concentration of listings & price disparity |
-
-A **single master filter** (neighbourhood dropdown) drives two linked views simultaneously — demonstrating reactive, event-driven dashboard architecture.
+| **Property Owners / Hosts** | "How should I price my listing?" | Pricing percentile guide, revenue estimation, competitive benchmarking |
+| **Real Estate Investors** | "Which neighbourhood has the best ROI?" | Occupancy heat maps, demand–supply matrix, revenue treemaps |
+| **Tourism Boards** | "Where are visitors concentrated?" | Demand proxy mapping, booking density, capacity planning |
+| **City Regulators** | "Are short-term rentals displacing housing?" | Entire-home share tracking, license compliance monitoring, policy impact dashboards |
+| **Researchers** | "What is the market structure?" | Host concentration analysis, spatial inequality measurement, pricing distribution |
 
 ---
 
-## 🎯 Key Findings
+## 📊 Dashboard Tabs
 
-- **Displacement crisis**: "Entire home/apt" dominates — each listing represents a unit lost to the long-term rental pool
-- **Tourism-saturated pricing**: Majority of listings cluster below €150/night, competing with budget accommodation
-- **Geographic inequality**: Historic city center (Binnenstad) shows disproportionate listing density with prices reaching ~€250/night
-- **Policy implications**: Evidence supports targeted zoning interventions in high-density neighbourhoods
+### 📍 Tab 1 — Market Overview
+Price distribution histogram, room type displacement pie chart, and interactive choropleth map with master neighbourhood filter.
+
+<p align="center">
+  <img src="assets/chart-price-histogram.png" alt="Price Distribution" width="400"/>
+  <img src="assets/chart-room-type-pie.png" alt="Room Type Displacement" width="300"/>
+</p>
+
+### 💼 Tab 2 — Business Intelligence
+Occupancy rates, revenue projections, demand–supply matrix, host concentration analysis, pricing position guide, and value matrix.
+
+<p align="center">
+  <img src="assets/bi-occupancy.png" alt="Occupancy Analysis" width="400"/>
+  <img src="assets/bi-demand-supply.png" alt="Demand-Supply Matrix" width="400"/>
+</p>
+
+<p align="center">
+  <img src="assets/bi-pricing-position.png" alt="Pricing Guide" width="400"/>
+  <img src="assets/bi-revenue-treemap.png" alt="Revenue Treemap" width="400"/>
+</p>
+
+### 📋 Tab 3 — Policy & Compliance
+Minimum nights distribution, license compliance tracking, occupancy–price optimization landscape, and actionable policy recommendations.
+
+<p align="center">
+  <img src="assets/policy-license.png" alt="License Compliance" width="400"/>
+  <img src="assets/policy-occupancy-timeline.png" alt="Occupancy vs Price" width="400"/>
+</p>
+
+---
+
+## 🔄 Live Features
+
+- **🟢 Auto-refresh** every 5 minutes via `dcc.Interval` — KPI cards update automatically
+- **Live timestamp badge** showing last data refresh
+- **6 KPI cards**: Total Listings, Avg. Price, Avg. Occupancy, Est. Annual Revenue, Entire Home Share, License Compliance
+- **Tab-independent filters** — each tab has its own neighbourhood selector
+
+---
+
+## ☁️ Cloud Deployment
+
+```bash
+# Docker (one command)
+docker compose up -d
+
+# Or deploy to Render.com in 60 seconds:
+# 1. Fork this repo
+# 2. Connect to https://dashboard.render.com
+# 3. It auto-detects render.yaml
+```
+
+| Platform | Config | Status |
+|---|---|---|
+| **Docker** | `Dockerfile` + `docker-compose.yml` | ✅ Ready |
+| **Render** | `render.yaml` (free tier) | ✅ Ready |
+| **Railway** | Auto-detects Dockerfile | ✅ Compatible |
+| **Fly.io** | `fly launch` from Dockerfile | ✅ Compatible |
 
 ---
 
 ## 🛠 Tech Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Framework** | [Dash 3.x](https://dash.plotly.com/) | Reactive web application server |
-| **Visualization** | [Plotly Express](https://plotly.com/python/plotly-express/) | Interactive charts, choropleth maps |
-| **UI** | [Dash Bootstrap Components](https://dash-bootstrap-components.opensource.faculty.ai/) | Responsive MINTY-themed layout |
-| **Data** | [Pandas](https://pandas.pydata.org/) | ETL pipeline, aggregation, filtering |
-| **Geospatial** | GeoJSON + Mapbox | Neighbourhood boundary rendering |
-| **Language** | Python 3.9+ | Full-stack implementation |
-
----
-
-## 🏗 Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│                  Dash Application                │
-│                                                 │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
-│  │ layout.py │  │charts.py │  │ callbacks.py │  │
-│  │           │  │          │  │              │  │
-│  │ • DOM     │  │ • ETL    │  │ • Event      │  │
-│  │ • Filters │  │ • Plots  │  │   binding    │  │
-│  │ • Grid    │  │ • Maps   │  │ • Reactive   │  │
-│  └─────┬─────┘  └────┬─────┘  └──────┬───────┘  │
-│        │             │               │          │
-│  ┌─────┴─────────────┴───────────────┴─────┐    │
-│  │              app.py (entry)             │    │
-│  │     Dash() → layout → callbacks         │    │
-│  └─────────────────┬───────────────────────┘    │
-└────────────────────┼────────────────────────────┘
-                     │
-          ┌──────────┴──────────┐
-          │                     │
-     listings.csv      neighbourhoods.geojson
-```
-
-### Data Flow
-
-1. **Module load**: `charts.py` loads CSV + GeoJSON into global `LISTINGS_DF` and `NEIGHBOURHOODS_GEOJSON` (singleton pattern)
-2. **Initial render**: `layout.py` calls `charts.get_*()` with default parameters → static `dcc.Graph` components
-3. **User interaction**: `callbacks.py` listens to `Input` changes (dropdown, slider) → calls chart functions → returns updated `figure` objects
-4. **Re-render**: Dash diffs the figure and updates only changed traces in the DOM
+| Layer | Technology |
+|---|---|
+| Framework | Dash 3.x + Flask |
+| Charts | Plotly Express, Plotly Graph Objects |
+| UI | Dash Bootstrap Components (MINTY theme) |
+| Data | Pandas, NumPy |
+| Geo | GeoJSON + Mapbox |
+| Deployment | Docker, Gunicorn, Render |
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Python 3.9+
-- pip
-
 ```bash
-# Clone
 git clone https://github.com/twomathematicians-code/inside-airbnb-gent-dashboard.git
-cd inside-airbnb-gent-dashboard
-
-# Install
-pip install -r src/requirements.txt
-
-# Run
-cd src
+cd inside-airbnb-gent-dashboard/src
+pip install -r requirements.txt
 python app.py
+# → http://localhost:8051
 ```
-
-Open **http://localhost:8051**
 
 ---
 
-## 📁 Project Structure
+## 📁 Structure
 
 ```
 ├── README.md
-├── TECHNICAL_SOP.md          # Architecture & engineering deep-dive
+├── TECHNICAL_SOP.md
 ├── LICENSE
+├── Dockerfile
+├── docker-compose.yml
+├── render.yaml
 ├── .gitignore
-├── assets/                   # Screenshots & media
+├── assets/              # Chart screenshots
 └── src/
-    ├── app.py                # Application entry point
-    ├── layout.py             # DOM composition & component tree
-    ├── charts.py             # Data pipeline & Plotly figure factory
-    ├── callbacks.py          # Reactive event binding
-    ├── requirements.txt      # Pinned dependencies
+    ├── app.py           # Entry point + server config
+    ├── layout.py        # Multi-tab DOM composition
+    ├── charts.py        # 14 chart functions + data pipeline
+    ├── callbacks.py     # 15+ reactive callbacks + live refresh
+    ├── export_charts.py # Screenshot generation utility
+    ├── requirements.txt
     └── data/
-        ├── listings.csv            # Airbnb listing records
-        └── neighbourhoods.geojson  # Ghent boundary polygons
+        ├── listings.csv
+        └── neighbourhoods.geojson
 ```
-
----
-
-## 🔒 License
-
-This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
 ---
 
 ## 📊 Data Attribution
 
-Data sourced from [Inside Airbnb](http://insideairbnb.com/get-the-data.html), licensed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/). All data rights belong to their respective owners. This project is an independent analysis and is not affiliated with Airbnb Inc.
+Data from [Inside Airbnb](http://insideairbnb.com/get-the-data.html), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). This is an independent analysis not affiliated with Airbnb Inc.
 
----
+## 🔒 License
 
-## ⭐ Skills Demonstrated
-
-- **Geospatial data visualization** — Choropleth + scatter map overlays with Mapbox
-- **Reactive dashboard engineering** — Dash callbacks, cross-filtering, state management
-- **Statistical EDA** — Price distribution analysis, categorical proportion quantification
-- **Data pipeline design** — CSV parsing, type coercion, GeoJSON integration
-- **UI/UX for data products** — Bootstrap theming, responsive grid layout, interactive controls
-- **Production Python** — Modular architecture, separation of concerns, clean code patterns
-
----
-
-*Built as a demonstration of full-stack data visualization engineering capabilities.*
+MIT — see [LICENSE](LICENSE)

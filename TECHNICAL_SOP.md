@@ -1,201 +1,159 @@
-# Technical SOP — Inside Airbnb Gent Dashboard
+# Technical SOP — Inside Airbnb Gent Business Intelligence Dashboard
 
-**Standard Operating Procedure for development, deployment, and maintenance of the Dash geospatial analytics dashboard.**
+**Standard Operating Procedure** — architecture, deployment, testing, and maintenance.
 
 ---
 
 ## 1. System Architecture
 
-### 1.1 High-Level Design
+### 1.1 Multi-Tab Dashboard Design
 
 ```
-Browser (client)
-    │
-    ▼
-Flask Dev Server (Werkzeug) :8051
-    │
-    ▼
-Dash Application Instance
-    ├── layout.py      → Component Tree (DOM specification)
-    ├── charts.py      → Data Layer + Figure Factory
-    └── callbacks.py   → Reactive Binding Layer
+┌─────────────────────────────────────────────────────────┐
+│                  Dash Application (app.py)               │
+│                                                         │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ KPI Header (6 cards)  │  🟢 LIVE refresh badge   │  │
+│  ├───────────────────────────────────────────────────┤  │
+│  │  Tab 1: Market    │ Tab 2: Business  │ Tab 3:    │  │
+│  │  Overview         │ Intelligence     │ Policy &  │  │
+│  │                   │                  │ Compliance│  │
+│  │  • Price hist     │ • Occupancy bar  │ • Min     │  │
+│  │  • Room type pie  │ • Revenue box    │   nights  │  │
+│  │  • Choropleth map │ • Demand-supply  │ • License │  │
+│  │                   │ • Host conc.     │ • Occ vs  │  │
+│  │                   │ • Pricing guide  │   price   │  │
+│  │                   │ • Value matrix   │ • Policy  │  │
+│  │                   │ • Revenue tree   │   recs    │  │
+│  └───────────────────────────────────────────────────┘  │
+│                                                         │
+│  dcc.Interval (5 min) ──► KPI refresh + timestamp       │
+└─────────────────────────────────────────────────────────┘
 ```
 
-The application follows a **modular Dash pattern** — layout, data, and interactivity are cleanly separated into three modules, wired together by `app.py`.
+### 1.2 Module Map
 
-### 1.2 Module Responsibilities
-
-| Module | Responsibility | Key Exports |
-|---|---|---|
-| `app.py` | Instantiation, configuration, server launch | `app` (Dash instance) |
-| `layout.py` | HTML/DCC component composition, grid structure | `get_app_layout()` |
-| `charts.py` | Data ingestion, transformation, Plotly figure generation | `get_price_distribution_chart()`, `get_room_type_pie_chart()`, `get_map()` |
-| `callbacks.py` | Input/Output binding, event wiring | `register_callbacks(app)` |
+| Module | Lines | Exports | Responsibility |
+|---|---|---|---|
+| `app.py` | ~40 | `app`, `server` | Instantiation, WSGI export, env config |
+| `layout.py` | ~290 | `get_app_layout()` | 4-tab DOM, KPI header, freshness badge, filters |
+| `charts.py` | ~460 | 14 figure functions + 10 placeholder components | Data pipeline, all Plotly figure generation |
+| `callbacks.py` | ~200 | `register_callbacks(app)` | 15+ Input/Output bindings, live refresh logic |
 
 ---
 
-## 2. Data Pipeline
+## 2. Chart Inventory
 
-### 2.1 Data Sources
-
-| File | Type | Rows | Key Columns |
+### Tab 1 — Market Overview (3 charts)
+| ID | Function | Type | Filter |
 |---|---|---|---|
-| `data/listings.csv` | CSV (UTF-8) | ~2,000+ | `price`, `room_type`, `neighbourhood`, `latitude`, `longitude`, `host_name` |
-| `data/neighbourhoods.geojson` | GeoJSON | 25 polygons | `properties.neighbourhood` |
+| `ex1A-basic-chart-price-dist` | `get_price_distribution_chart` | `px.histogram` | Price range slider |
+| `ex1B-basic-chart-room-type` | `get_room_type_pie_chart` | `px.pie` | Master neighbourhood dropdown |
+| `ex3-map-visualization` | `get_map` | `px.choropleth_mapbox` + `px.scatter_mapbox` | Master neighbourhood dropdown |
 
-### 2.2 ETL Process
+### Tab 2 — Business Intelligence (7 charts)
+| ID | Function | Type | Business Question |
+|---|---|---|---|
+| `bi-occupancy-chart` | `get_occupancy_chart` | `px.bar` (horizontal) | Which areas have highest occupancy? |
+| `bi-revenue-box` | `get_revenue_boxplot` | `px.box` | What's the revenue spread by room type? |
+| `bi-demand-supply` | `get_demand_supply_chart` | `px.scatter` (bubble) | Where is demand outpacing supply? |
+| `bi-host-concentration` | `get_host_concentration_chart` | `px.pie` (donut) | Is the market professionalized? |
+| `bi-pricing-position` | `get_pricing_position_chart` | `go.Bar` (grouped) | How should I price my listing? |
+| `bi-rating-price` | `get_rating_price_matrix` | `px.scatter` | What's the value sweet spot? |
+| `bi-revenue-treemap` | `get_revenue_treemap` | `px.treemap` | Where's the revenue concentrated? |
+
+### Tab 3 — Policy & Compliance (3 charts)
+| ID | Function | Type | Policy Question |
+|---|---|---|---|
+| `policy-min-nights` | `get_minimum_nights_chart` | `px.histogram` (stacked) | Are minimum stays a barrier? |
+| `policy-license` | `get_license_compliance_chart` | `go.Bar` (stacked, h) | Which areas lack compliance? |
+| `policy-occupancy-timeline` | `get_occupancy_timeline` | `make_subplots` (dual-axis) | Price vs occupancy trade-off? |
+
+---
+
+## 3. Data Pipeline
+
+### 3.1 Derived Metrics (computed at load)
 
 ```python
-# charts.py — load-on-import singleton pattern
-LISTINGS_DF = _load_listings_data()       # pd.read_csv → price coercion
-NEIGHBOURHOODS_GEOJSON = _load_geojson()  # json.load → dict
+# All derived in _load_listings_data() — computed once, used everywhere
+df['booked_days']        = 365 - df['availability_365']
+df['occupancy_pct']      = (df['booked_days'] / 365 * 100).round(1)
+df['est_annual_revenue'] = (df['price'] * df['booked_days']).round(2)
+df['host_category']      = pd.cut(calculated_host_listings_count, bins=[0,1,5,inf])
+df['license_status']     = df['license'].notna().map({True: 'Licensed', False: 'Unlicensed'})
 ```
 
-**Price cleaning pipeline:**
-1. Read CSV with `pd.read_csv(path)`
-2. Strip `$` and `,` from `price` column via regex: `r'\$'` → `''`, `,` → `''`
-3. Cast to `float64`
-4. Store in module-level `LISTINGS_DF` for zero-reload access
+### 3.2 Data Columns Used
 
-**Error handling:** Both loaders catch `Exception`, log to stderr, and return empty DataFrame / `None` to prevent crash-on-start.
-
-### 2.3 GeoJSON Feature Key Contract
-
-The choropleth requires exact alignment between:
-- CSV column: `neighbourhood` (listing's neighbourhood name)
-- GeoJSON property: `properties.neighbourhood` (polygon feature identifier)
-
-This is enforced in `px.choropleth_mapbox(..., featureidkey="properties.neighbourhood")`.
+| Column | Type | Used In |
+|---|---|---|
+| `price` | float | 8 charts |
+| `room_type` | categorical | 7 charts |
+| `neighbourhood` | categorical | 7 charts |
+| `availability_365` | int → `booked_days`, `occupancy_pct` | 4 charts |
+| `reviews_per_month` | float | 2 charts |
+| `calculated_host_listings_count` | int → `host_category` | 1 chart |
+| `minimum_nights` | int | 1 chart |
+| `license` | str → `license_status` | 1 chart |
+| `latitude`, `longitude` | float | 1 chart |
 
 ---
 
-## 3. Callback Architecture
+## 4. Callback Architecture
 
-### 3.1 Callback Map
+### 4.1 Filter Independence
+
+Each tab has its **own** neighbourhood dropdown filter:
+- `master-filter-neighbourhood` → Tab 1 (Room Type Pie + Map)
+- `bi-neighbourhood-filter` → Tab 2 (Occupancy, Revenue Box, Host Conc, Revenue Treemap)
+- `policy-neighbourhood-filter` → Tab 3 (Min Nights)
+
+This prevents cross-tab filter interference — changing Tab 1's filter doesn't affect Tab 2.
+
+### 4.2 Live Refresh Mechanism
 
 ```
-┌──────────────────────────────┐
-│  price-range-slider          │──── Input ──► update_price_histogram()
-│  (RangeSlider 0–500)         │               ▼
-└──────────────────────────────┘     ex1A-basic-chart-price-dist (figure)
-
-
-┌──────────────────────────────┐
-│  master-filter-neighbourhood │──── Input ──► update_room_type_pie_chart()
-│  (Dropdown)                  │               ▼
-└──────────────────────────────┘     ex1B-basic-chart-room-type (figure)
-
-                              │
-                              ├──── Input ──► update_map_by_neighbourhood()
-                              │               ▼
-                              │      ex3-map-visualization (figure)
+dcc.Interval(id='live-refresh-interval', interval=300000ms)
+    │
+    ├──► Output: freshness-badge.children (timestamp update)
+    └──► Output: kpi-header-row.children (KPI recalculation)
 ```
 
-### 3.2 Callback Execution Flow
+The interval triggers `charts.get_kpi_metrics()` which recomputes all 6 KPIs from the in-memory DataFrame. No re-reading of CSV — sub-millisecond refresh.
 
-1. User selects neighbourhood from dropdown → `master-filter-neighbourhood.value` changes
-2. Dash invokes **both** `update_room_type_pie_chart` and `update_map_by_neighbourhood` in parallel
-3. Each callback:
-   - Receives the selected neighbourhood string (or `'All'`)
-   - Filters `LISTINGS_DF` via boolean mask: `df[df['neighbourhood'] == selected]`
-   - Generates updated Plotly `figure` object
-   - Returns figure → Dash diffs & updates DOM
+### 4.3 Callback Count
 
-### 3.3 Performance Characteristics
-
-- **Data load**: O(n) on import, O(1) thereafter (global singleton)
-- **Filter**: O(n) boolean mask per callback invocation
-- **Figure generation**: Plotly Express constructs trace objects in memory — O(n) for scatter, O(n) for histogram binning
-- **Network payload**: JSON-serialized figure objects (~50–200 KB per response)
-- **No database**: Zero network calls after initial page load; all filtering is in-memory
+| Category | Count |
+|---|---|
+| Tab 1 (Market Overview) | 3 |
+| Tab 2 (Business Intelligence) | 7 |
+| Tab 3 (Policy & Compliance) | 3 |
+| Live Refresh | 1 |
+| **Total** | **14** |
 
 ---
 
-## 4. Component Specification
+## 5. Deployment
 
-### 4.1 Price Distribution Histogram
-
-- **Type**: `px.histogram`
-- **Bins**: 50 (fixed)
-- **Color**: Teal sequential (`px.colors.sequential.Teal[4]`)
-- **Dimensions**: 350px height, responsive width
-- **Interaction**: Linked to `price-range-slider` (min/max range)
-- **Filter logic**: `(price >= min) & (price <= max)`
-
-### 4.2 Room Type Pie Chart
-
-- **Type**: `px.pie`
-- **Categories**: `room_type` column values
-- **Color mapping**: Fixed discrete map
-  - Entire home/apt → `#1f77b4`
-  - Private room → `#ff7f0e`
-  - Shared room → `#2ca02c`
-  - Hotel room → `#d62728`
-- **Labels**: Percent + label, positioned outside with leader lines
-- **Dimensions**: 350px height
-
-### 4.3 Choropleth + Scatter Map
-
-- **Layer 1 (Choropleth)**: `px.choropleth_mapbox`
-  - Color axis: `average_price` (Viridis scale)
-  - Aggregation: `groupby('neighbourhood')['price'].mean()`
-  - Opacity: 0.7
-  - Range capped at 95th percentile to prevent outlier skew
-
-- **Layer 2 (Scatter)**: `px.scatter_mapbox`
-  - Individual listing markers
-  - Color-coded by `room_type` (same discrete map)
-  - Hover data: host name, price, room type
-  - Opacity: 0.8
-
-- **Composition**: Scatter traces are added to choropleth figure via `add_trace()`
-
-- **Map Config**:
-  - Style: `carto-positron` (light basemap)
-  - Center: Mean lat/lon of all listings
-  - Zoom: 10.5
-  - Height: 500px
-
-### 4.4 Master Filter Dropdown
-
-- **Type**: `dcc.Dropdown`
-- **Options**: Dynamically populated from `LISTINGS_DF['neighbourhood'].unique()`
-- **Default**: `'All'` (no filter)
-- **Width**: 6-column Bootstrap grid, centered
-
----
-
-## 5. Deployment Guide
-
-### 5.1 Development
-
+### 5.1 Local Development
 ```bash
-cd src
-python app.py
-# → http://localhost:8051
-# Debug mode: ON (Flask reloader disabled for Python 3.14 compat)
+cd src && python app.py          # Debug off, port 8051
+DEBUG=true python app.py          # Debug mode on
 ```
 
-### 5.2 Production (Gunicorn)
-
+### 5.2 Docker
 ```bash
-pip install gunicorn
-gunicorn app:server -b 0.0.0.0:8051 -w 4
+docker compose up -d              # Build + start
+docker compose logs -f            # Follow logs
+docker compose down               # Stop
 ```
 
-`app.server` exposes the underlying Flask WSGI application.
-
-### 5.3 Docker (Recommended)
-
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY src/requirements.txt .
-RUN pip install -r requirements.txt
-COPY src/ .
-EXPOSE 8051
-CMD ["gunicorn", "app:server", "-b", "0.0.0.0:8051", "-w", "2"]
-```
+### 5.3 Render.com (Free Tier)
+1. Fork repo → connect in Render dashboard
+2. `render.yaml` auto-detected — no manual config needed
+3. Deploys at `https://airbnb-gent-dashboard.onrender.com`
+4. Free tier: spins down after 15 min inactivity, auto-wakes on next request
 
 ### 5.4 Environment Variables
 
@@ -203,62 +161,56 @@ CMD ["gunicorn", "app:server", "-b", "0.0.0.0:8051", "-w", "2"]
 |---|---|---|
 | `PORT` | `8051` | Server listen port |
 | `DEBUG` | `false` | Enable Dash debug mode |
-| `DATA_PATH` | `data/` | Override data directory location |
+| `HOST` | `127.0.0.1` | Bind address |
 
 ---
 
-## 6. Testing Strategy
+## 6. Performance Profile
 
-### 6.1 Unit Tests
-
-```python
-# test_charts.py
-def test_price_cleaning():
-    """Verify $ and , stripping from price strings."""
-    
-def test_filter_empty_dataframe():
-    """Chart functions return {} when LISTINGS_DF is empty."""
-    
-def test_neighbourhood_filter():
-    """Room type pie chart correctly subsets by neighbourhood."""
-```
-
-### 6.2 Integration Tests
-
-```python
-# test_dashboard.py
-def test_app_starts():
-    """Dash app instantiates without errors."""
-    
-def test_all_callbacks_registered():
-    """verify callbacks map to valid component IDs."""
-```
-
-### 6.3 Visual Regression
-
-- Screenshot comparison of initial dashboard state
-- Validate figure schema: required keys (`data`, `layout`), trace count, color mapping
-
----
-
-## 7. Code Quality Standards
-
-- **PEP 8** compliant formatting
-- **Type hints** recommended for all function signatures
-- **Docstrings** required for public functions (Google style)
-- **No hardcoded paths** — use module-level constants with fallbacks
-- **Fail gracefully** — empty data returns empty figure dicts, never crashes
-
----
-
-## 8. Known Limitations & Mitigations
-
-| Limitation | Impact | Mitigation |
+| Operation | Complexity | Typical Time |
 |---|---|---|
-| In-memory data only | Restart required for data refresh | Implement periodic CSV reload via `Interval` component |
-| Single-threaded Flask dev server | One user at a time | Use Gunicorn/WSGI in production |
-| No caching | Repeated computation on callback | Add `@flask_caching` for expensive aggregations |
-| Python 3.14 incompatibility | `pkgutil.find_loader` removed | Hot reload disabled; use watchdog-based reloader |
+| Data load (startup) | O(n) | ~100ms |
+| KPI calculation | O(1) mem access | <1ms |
+| Filter + chart render | O(n) boolean mask | ~50-200ms |
+| Map render (choropleth + scatter) | O(n) | ~500ms |
+| Live refresh (all KPIs) | O(1) | <5ms |
+
+Memory: ~30MB (DataFrame + GeoJSON in memory)
+
+---
+
+## 7. Testing Strategy
+
+### Unit
+- `test_price_cleaning()` — verify $ and , stripping
+- `test_derived_columns()` — booked_days, occupancy_pct, host_category
+- `test_empty_dataframe_returns_empty_dict()` — graceful degradation
+
+### Integration
+- `test_all_tabs_render()` — verify no exceptions on layout build
+- `test_all_callbacks_registered()` — 14 callbacks bound
+- `test_live_refresh_updates_timestamp()` — interval triggers correctly
+
+### Visual Regression
+- Export all 14 charts via `export_charts.py`
+- Compare pixel hashes against baseline
+
+---
+
+## 8. Business Use Case Mapping
+
+| Chart | Stakeholder | Decision It Supports |
+|---|---|---|
+| Occupancy Bar | Property Owner | "Should I raise/lower my price based on area occupancy?" |
+| Revenue Boxplot | Investor | "Which room type yields the best revenue distribution?" |
+| Demand–Supply Matrix | Tourism Board | "Where should we direct marketing spend?" |
+| Host Concentration | Regulator | "Is the market dominated by professional operators?" |
+| Pricing Position Guide | Host | "Is my €85/night private room competitive?" |
+| Value Matrix | Host | "Am I underpriced for my demand level?" |
+| Revenue Treemap | Investor | "Which neighbourhood × room type combo generates most revenue?" |
+| Min Nights Histogram | Regulator | "What policy threshold would impact the fewest listings?" |
+| License Compliance | Regulator | "Where should enforcement focus?" |
+| Occupancy vs Price | Host | "What's the optimal price for maximum occupancy?" |
 
 ---
 
@@ -266,9 +218,9 @@ def test_all_callbacks_registered():
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.0.0 | 2025-10 | Initial release — histogram, pie chart, choropleth map |
-| 1.0.1 | 2026-08 | Python 3.14 compatibility fix, portfolio restructuring |
+| 1.0.0 | 2025-10 | Initial: 3 charts, 1 filter |
+| 2.0.0 | 2026-08 | Major: 14 charts, 4 tabs, KPI header, live refresh, Docker, cloud deployment |
 
 ---
 
-*This SOP is maintained alongside the codebase. Update with each significant architectural change.*
+*Maintained alongside the codebase. Update on architectural changes.*

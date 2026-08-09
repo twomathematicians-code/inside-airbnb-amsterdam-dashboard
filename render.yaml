@@ -1,0 +1,20 @@
+# ── Render.com Blueprint ──
+# Deploy at: https://dashboard.render.com/
+# Free tier: 750 hrs/month — enough for continuous demo
+
+services:
+  - type: web
+    name: airbnb-gent-dashboard
+    env: docker
+    region: frankfurt  # Closest to Belgium data
+    plan: free
+    healthCheckPath: /
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 8051
+      - key: DEBUG
+        value: "false"
+      - key: PYTHON_VERSION
+        value: "3.11"
+    autoDeploy: true

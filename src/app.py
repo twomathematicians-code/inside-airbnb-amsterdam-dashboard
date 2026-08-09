@@ -1,23 +1,50 @@
 # app.py
 """
-Main application file for the Dash Dashboard.
+Inside Airbnb Gent — Business Intelligence Dashboard
 Run with: python app.py
+Open: http://localhost:8051
 """
 
+import os
 import dash
 from dash import html
 import dash_bootstrap_components as dbc
 from layout import get_app_layout
 from callbacks import register_callbacks
 
-# choose your own theme here: https://bootswatch.com/default/
-app = dash.Dash(external_stylesheets=[dbc.themes.MINTY])
-app.title = "Inside Airbnb Gent"
+# ── Configuration ─────────────────────────────────────
+PORT = int(os.environ.get("PORT", 8051))
+DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+HOST = os.environ.get("HOST", "127.0.0.1")
+
+# ── App Initialization ────────────────────────────────
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.MINTY, dbc.icons.BOOTSTRAP],
+    title="Airbnb Gent — Business Intelligence",
+    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
+    suppress_callback_exceptions=True,
+)
+
+# Expose Flask server for Gunicorn
+server = app.server
+
+# ── Layout & Callbacks ────────────────────────────────
 app.layout = html.Div(get_app_layout())
 register_callbacks(app)
 
-
+# ── Main ─────────────────────────────────────────────
 if __name__ == "__main__":
+    print(f"\n{'='*60}")
+    print(f"  🏠 Inside Airbnb Gent — Business Intelligence Dashboard")
+    print(f"  🌐 Starting on http://{HOST}:{PORT}")
+    print(f"  📊 Tabs: Market Overview | Business Intelligence | Policy & Compliance")
+    print(f"  🔄 Live refresh: every 5 minutes")
+    print(f"{'='*60}\n")
     app.run(
-        debug=True, port=8051, dev_tools_hot_reload=False, use_reloader=False
+        debug=DEBUG,
+        host=HOST,
+        port=PORT,
+        dev_tools_hot_reload=False,
+        use_reloader=False,
     )
