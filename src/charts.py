@@ -405,7 +405,94 @@ def get_revenue_treemap(selected_neighbourhood=None):
 
 
 # ═══════════════════════════════════════════════════════
-#  TAB 3 — POLICY & COMPLIANCE
+#  BUSINESS UTILITIES — Data Export, ROI, Comparison
+# ═══════════════════════════════════════════════════════
+
+def get_export_dataframe(selected_neighbourhood=None, room_type_filter=None,
+                         min_price=None, max_price=None, search_term=None):
+    """Return filtered DataFrame for DataTable display and CSV export."""
+    df = LISTINGS_DF.copy()
+    if df.empty:
+        return df
+
+    if selected_neighbourhood and selected_neighbourhood != 'All':
+        df = df[df['neighbourhood'] == selected_neighbourhood]
+    if room_type_filter and room_type_filter != 'All':
+        df = df[df['room_type'] == room_type_filter]
+    if min_price is not None:
+        df = df[df['price'] >= min_price]
+    if max_price is not None:
+        df = df[df['price'] <= max_price]
+    if search_term:
+        mask = df['host_name'].str.contains(search_term, case=False, na=False)
+        if 'name' in df.columns:
+            mask |= df['name'].str.contains(search_term, case=False, na=False)
+        df = df[mask]
+
+    cols = ['name', 'host_name', 'neighbourhood', 'room_type', 'price',
+            'minimum_nights', 'occupancy_pct', 'est_annual_revenue',
+            'number_of_reviews', 'reviews_per_month', 'license_status']
+    available = [c for c in cols if c in df.columns]
+    return df[available]
+
+
+def get_neighbourhood_comparison(nb1, nb2):
+    """Side-by-side KPI comparison for two neighbourhoods."""
+    listings = LISTINGS_DF
+    if listings.empty: return {}
+
+    def stats_for(nb):
+        sub = listings[listings['neighbourhood'] == nb]
+        if sub.empty: return None
+        return {
+            'listings': len(sub),
+            'avg_price': sub['price'].mean(),
+            'median_price': sub['price'].median(),
+            'avg_occupancy': sub['occupancy_pct'].mean(),
+            'est_total_revenue': sub['est_annual_revenue'].sum(),
+            'entire_home_pct': (sub['room_type'] == 'Entire home/apt').mean() * 100,
+            'licensed_pct': (sub['license_status'] == 'Licensed').mean() * 100,
+            'avg_min_nights': sub['minimum_nights'].mean(),
+            'top_host_category': sub['host_category'].mode().iloc[0] if not sub['host_category'].mode().empty else 'N/A',
+            'avg_reviews_per_month': sub['reviews_per_month'].mean(),
+        }
+
+    return {'nb1': stats_for(nb1), 'nb2': stats_for(nb2),
+            'nb1_name': nb1, 'nb2_name': nb2}
+
+
+def calculate_roi(price_per_night, occupancy_pct, num_listings=1, room_type='Entire home/apt'):
+    """ROI projection calculator."""
+    listings = LISTINGS_DF
+    if listings.empty: return {}
+
+    booked_days = 365 * (occupancy_pct / 100)
+    annual_revenue = price_per_night * booked_days * num_listings
+    monthly_revenue = annual_revenue / 12
+
+    # Market benchmarks
+    market = listings[listings['room_type'] == room_type]
+    market_avg_price = market['price'].mean() if not market.empty else 0
+    market_avg_occupancy = market['occupancy_pct'].mean() if not market.empty else 0
+    market_avg_revenue = market['est_annual_revenue'].mean() if not market.empty else 0
+
+    price_vs_market = ((price_per_night - market_avg_price) / market_avg_price * 100) if market_avg_price else 0
+    revenue_vs_market = ((annual_revenue - market_avg_revenue) / market_avg_revenue * 100) if market_avg_revenue else 0
+
+    return {
+        'annual_revenue': annual_revenue,
+        'monthly_revenue': monthly_revenue,
+        'booked_days': booked_days,
+        'market_avg_price': market_avg_price,
+        'market_avg_occupancy': market_avg_occupancy,
+        'market_avg_revenue': market_avg_revenue,
+        'price_vs_market_pct': price_vs_market,
+        'revenue_vs_market_pct': revenue_vs_market,
+    }
+
+
+# ═══════════════════════════════════════════════════════
+#  PLACEHOLDER GRAPH COMPONENTS (for layout.py)
 # ═══════════════════════════════════════════════════════
 
 def get_minimum_nights_chart(selected_neighbourhood=None):

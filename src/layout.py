@@ -4,10 +4,11 @@ Dashboard DOM composition — multi-tab business intelligence layout.
 Uses Dash Bootstrap Components for responsive grid.
 """
 
-from dash import dcc, html
+from dash import dcc, html, dash_table
 import dash_bootstrap_components as dbc
 import charts
 from datetime import datetime
+import pandas as pd
 
 
 # ═══════════════════════════════════════════════════════
@@ -246,6 +247,140 @@ def tab_about():
 
 
 # ═══════════════════════════════════════════════════════
+#  TAB 5 — DATA EXPLORER (Search, Filter, Export)
+# ═══════════════════════════════════════════════════════
+
+def tab_data_explorer():
+    """Interactive data table with search, filter, and CSV export."""
+    listings = charts.LISTINGS_DF
+    neighbourhoods = sorted(listings['neighbourhood'].unique()) if not listings.empty else []
+    room_types = sorted(listings['room_type'].unique()) if not listings.empty else []
+
+    return dbc.Tab(label="🔍 Data Explorer", tab_id="tab-explorer", children=[
+        html.Br(),
+        html.H3("Search, Filter & Export Listing Data", className="mt-2"),
+
+        # Filter row
+        dbc.Row([
+            dbc.Col([
+                html.Label("Search Host/Listing Name:", className="fw-bold"),
+                dbc.Input(id="explorer-search", type="text", placeholder="Type host or listing name...",
+                         debounce=True),
+            ], width=3),
+            dbc.Col([
+                html.Label("Neighbourhood:", className="fw-bold"),
+                dcc.Dropdown(id="explorer-neighbourhood",
+                            options=[{'label': 'All', 'value': 'All'}] +
+                                    [{'label': n, 'value': n} for n in neighbourhoods],
+                            value='All', clearable=False),
+            ], width=3),
+            dbc.Col([
+                html.Label("Room Type:", className="fw-bold"),
+                dcc.Dropdown(id="explorer-room-type",
+                            options=[{'label': 'All', 'value': 'All'}] +
+                                    [{'label': r, 'value': r} for r in room_types],
+                            value='All', clearable=False),
+            ], width=2),
+            dbc.Col([
+                html.Label("Price Range (€):", className="fw-bold"),
+                dcc.RangeSlider(id="explorer-price-range", min=0, max=500, step=10,
+                               value=[0, 500],
+                               marks={i: f'€{i}' for i in range(0, 501, 100)},
+                               tooltip={"placement": "bottom", "always_visible": True}),
+            ], width=3),
+            dbc.Col([
+                html.Label("Export:", className="fw-bold"),
+                html.Br(),
+                dbc.Button("⬇ Download CSV", id="btn-download-csv", color="primary", size="sm",
+                          className="me-2"),
+                dcc.Download(id="download-dataframe-csv"),
+            ], width=1, className="d-flex align-items-end"),
+        ], className="mb-3 g-2"),
+
+        # Row count + table
+        html.Div(id="explorer-row-count", className="text-muted mb-2"),
+        html.Div(id="explorer-table-container", style={"maxHeight": "500px", "overflowY": "scroll"}),
+    ])
+
+
+# ═══════════════════════════════════════════════════════
+#  TAB 6 — ROI CALCULATOR + NEIGHBOURHOOD COMPARISON
+# ═══════════════════════════════════════════════════════
+
+def tab_roi_calculator():
+    """What-if calculator and side-by-side neighbourhood comparison."""
+    listings = charts.LISTINGS_DF
+    neighbourhoods = sorted(listings['neighbourhood'].unique()) if not listings.empty else []
+    room_types = sorted(listings['room_type'].unique()) if not listings.empty else []
+
+    return dbc.Tab(label="🧮 ROI Calculator", tab_id="tab-roi", children=[
+        html.Br(),
+        dbc.Row([
+            # ── LEFT: ROI Calculator ──
+            dbc.Col(dbc.Card([
+                dbc.CardHeader(html.H4("📊 Revenue Projection Calculator", className="mb-0")),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Room Type:", className="fw-bold"),
+                            dcc.Dropdown(id="roi-room-type",
+                                        options=[{'label': r, 'value': r} for r in room_types],
+                                        value=room_types[0] if room_types else None, clearable=False),
+                        ], width=6),
+                        dbc.Col([
+                            html.Label("Number of Listings:", className="fw-bold"),
+                            dbc.Input(id="roi-num-listings", type="number", value=1, min=1, max=100, step=1),
+                        ], width=6),
+                    ], className="mb-3"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Nightly Price (€):", className="fw-bold"),
+                            dcc.Slider(id="roi-price", min=20, max=500, step=5, value=150,
+                                      marks={i: f'€{i}' for i in range(0, 501, 100)},
+                                      tooltip={"placement": "bottom", "always_visible": True}),
+                        ], width=12),
+                    ], className="mb-3"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Expected Occupancy (%):", className="fw-bold"),
+                            dcc.Slider(id="roi-occupancy", min=10, max=100, step=5, value=70,
+                                      marks={i: f'{i}%' for i in range(0, 101, 20)},
+                                      tooltip={"placement": "bottom", "always_visible": True}),
+                        ], width=12),
+                    ], className="mb-3"),
+                    html.Hr(),
+                    html.Div(id="roi-results"),
+                ])
+            ], className="h-100"), width=5),
+
+            # ── RIGHT: Neighbourhood Comparison ──
+            dbc.Col(dbc.Card([
+                dbc.CardHeader(html.H4("⚖️ Neighbourhood Comparison", className="mb-0")),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Neighbourhood A:", className="fw-bold"),
+                            dcc.Dropdown(id="compare-nb1",
+                                        options=[{'label': n, 'value': n} for n in neighbourhoods],
+                                        value=neighbourhoods[0] if len(neighbourhoods) > 0 else None,
+                                        clearable=False),
+                        ], width=6),
+                        dbc.Col([
+                            html.Label("Neighbourhood B:", className="fw-bold"),
+                            dcc.Dropdown(id="compare-nb2",
+                                        options=[{'label': n, 'value': n} for n in neighbourhoods],
+                                        value=neighbourhoods[1] if len(neighbourhoods) > 1 else None,
+                                        clearable=False),
+                        ], width=6),
+                    ], className="mb-3"),
+                    html.Div(id="comparison-results"),
+                ])
+            ], className="h-100"), width=7),
+        ]),
+    ])
+
+
+# ═══════════════════════════════════════════════════════
 #  MAIN LAYOUT COMPOSITION
 # ═══════════════════════════════════════════════════════
 
@@ -279,6 +414,8 @@ def get_app_layout():
             tab_market_overview(),
             tab_business_intelligence(),
             tab_policy_compliance(),
+            tab_data_explorer(),
+            tab_roi_calculator(),
             tab_about(),
         ], id="dashboard-tabs", active_tab="tab-market", className="mb-4"),
 

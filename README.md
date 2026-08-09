@@ -58,6 +58,28 @@ Minimum nights distribution, license compliance tracking, occupancy–price opti
 - **🟢 Auto-refresh** every 5 minutes via `dcc.Interval` — KPI cards update automatically
 - **Live timestamp badge** showing last data refresh
 - **6 KPI cards**: Total Listings, Avg. Price, Avg. Occupancy, Est. Annual Revenue, Entire Home Share, License Compliance
+
+### 🔍 Tab 4 — Data Explorer (NEW)
+Search, filter, sort, and export listing data. Built-in Dash DataTable with native column filtering and one-click CSV download.
+
+### 🧮 Tab 5 — ROI Calculator + Neighbourhood Comparison (NEW)
+- **Revenue Projection**: Adjust price, occupancy, and listing count — see annual/monthly revenue projections with market benchmarks
+- **Side-by-Side Comparison**: Compare any two neighbourhoods across 10 KPIs (price, occupancy, revenue, compliance, host type, etc.)
+
+---
+
+## ☁️ Deploy Live in 60 Seconds
+
+### Option 1: Render.com (Free — Recommended)
+
+1. Fork this repo → [github.com/twomathematicians-code/inside-airbnb-amsterdam-dashboard](https://github.com/twomathematicians-code/inside-airbnb-amsterdam-dashboard)
+2. Go to [dashboard.render.com](https://dashboard.render.com) → **New Web Service**
+3. Connect your forked repo — Render auto-detects `render.yaml`
+4. Click **Deploy** — live at `https://airbnb-amsterdam-dashboard.onrender.com`
+
+> ⚠️ Free tier spins down after 15 min of inactivity. First request wakes it (takes ~30s).
+
+### Option 2: Docker (Any Cloud)
 - **Tab-independent filters** — each tab has its own neighbourhood selector
 
 ---
