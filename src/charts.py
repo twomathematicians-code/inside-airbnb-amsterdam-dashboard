@@ -626,6 +626,217 @@ def get_kpi_metrics():
 
 
 # ═══════════════════════════════════════════════════════
+#  STRATEGIC INTELLIGENCE LAYER
+# ═══════════════════════════════════════════════════════
+
+def get_market_surveillance():
+    """Compute volatility, anomaly, and concentration metrics per neighbourhood."""
+    listings = LISTINGS_DF
+    if listings.empty: return pd.DataFrame()
+
+    surv = listings.groupby('neighbourhood').agg(
+        listing_count=('id', 'count'),
+        avg_price=('price', 'mean'),
+        price_std=('price', 'std'),
+        price_cv=('price', lambda x: (x.std() / x.mean() * 100) if x.mean() > 0 else 0),
+        avg_occupancy=('occupancy_pct', 'mean'),
+        occupancy_std=('occupancy_pct', 'std'),
+        avg_revenue=('est_annual_revenue', 'mean'),
+        total_revenue=('est_annual_revenue', 'sum'),
+        entire_home_pct=('room_type', lambda x: (x == 'Entire home/apt').mean() * 100),
+        licensed_pct=('license_status', lambda x: (x == 'Licensed').mean() * 100),
+        professional_host_pct=('host_category', lambda x: (x == 'Professional (6+)').mean() * 100),
+        avg_reviews=('reviews_per_month', 'mean'),
+        avg_min_nights=('minimum_nights', 'mean'),
+    ).reset_index()
+
+    surv['hhi'] = 0.0
+    for nb in surv['neighbourhood']:
+        sub = listings[listings['neighbourhood'] == nb]
+        if not sub.empty:
+            shares = sub['est_annual_revenue'] / sub['est_annual_revenue'].sum()
+            surv.loc[surv['neighbourhood'] == nb, 'hhi'] = (shares ** 2).sum() * 10000
+
+    surv['occupancy_z'] = (surv['avg_occupancy'] - surv['avg_occupancy'].mean()) / surv['avg_occupancy'].std()
+    surv['price_z'] = (surv['avg_price'] - surv['avg_price'].mean()) / surv['avg_price'].std()
+
+    surv['risk_score'] = (
+        surv['entire_home_pct'].rank(pct=True) * 30 +
+        (100 - surv['licensed_pct']).rank(pct=True) * 25 +
+        surv['professional_host_pct'].rank(pct=True) * 20 +
+        surv['price_cv'].rank(pct=True) * 15 +
+        surv['avg_min_nights'].rank(pct=True) * 10
+    ).round(0)
+
+    surv['opportunity_score'] = (
+        surv['avg_occupancy'].rank(pct=True) * 30 +
+        surv['avg_reviews'].rank(pct=True) * 25 +
+        surv['avg_revenue'].rank(pct=True) * 20 +
+        surv['listing_count'].rank(pct=True) * 15 +
+        surv['licensed_pct'].rank(pct=True) * 10
+    ).round(0)
+
+    surv['risk_category'] = pd.cut(surv['risk_score'], bins=[0, 30, 55, 75, 100],
+                                    labels=['Low Risk', 'Moderate', 'Elevated', 'High Risk'])
+    return surv
+
+
+def get_risk_opportunity_matrix_chart():
+    surv = get_market_surveillance()
+    if surv.empty: return {}
+    fig = px.scatter(
+        surv, x='risk_score', y='opportunity_score', size='listing_count',
+        color='risk_category', hover_name='neighbourhood', text='neighbourhood',
+        title='Strategic Positioning Matrix: Risk vs Opportunity by Neighbourhood',
+        color_discrete_map={'Low Risk': '#2ca02c', 'Moderate': '#ff7f0e',
+                            'Elevated': '#d62728', 'High Risk': '#8b0000'},
+        size_max=50,
+    )
+    fig.add_hline(y=50, line_dash="dash", line_color="gray", opacity=0.4)
+    fig.add_vline(x=55, line_dash="dash", line_color="gray", opacity=0.4)
+    fig.update_traces(textposition='top center', textfont=dict(size=9))
+    fig.update_layout(height=550, margin=dict(l=20, r=20, t=50, b=20),
+                      font=dict(size=11), title_font_size=16)
+    return fig
+
+
+def get_price_volatility_chart():
+    surv = get_market_surveillance()
+    if surv.empty: return {}
+    df = surv.sort_values('price_cv', ascending=True)
+    colors = ['#2ca02c' if v < 30 else '#ff7f0e' if v < 50 else '#d62728' for v in df['price_cv']]
+    fig = go.Figure(go.Bar(y=df['neighbourhood'], x=df['price_cv'], orientation='h',
+                            marker_color=colors, text=df['price_cv'].round(1), textposition='outside'))
+    fig.update_layout(title='Price Volatility Index (CV%) — Lower = More Stable',
+                      height=max(400, len(df)*25), margin=dict(l=20, r=50, t=50, b=20),
+                      xaxis_title='Price CV (%)', font=dict(size=11), title_font_size=16)
+    return fig
+
+
+def get_market_concentration_chart():
+    surv = get_market_surveillance()
+    if surv.empty: return {}
+    df = surv.sort_values('hhi', ascending=True)
+    colors = ['#2ca02c' if v < 1500 else '#ff7f0e' if v < 2500 else '#d62728' for v in df['hhi']]
+    fig = go.Figure(go.Bar(y=df['neighbourhood'], x=df['hhi'], orientation='h',
+                            marker_color=colors, text=df['hhi'].round(0), textposition='outside'))
+    fig.add_vline(x=1500, line_dash="dash", line_color="gray", opacity=0.5)
+    fig.add_vline(x=2500, line_dash="dash", line_color="red", opacity=0.5)
+    fig.update_layout(title='Market Concentration (HHI) — Higher = Revenue Controlled by Fewer Hosts',
+                      height=max(400, len(df)*25), margin=dict(l=20, r=50, t=50, b=20),
+                      xaxis_title='Herfindahl-Hirschman Index', font=dict(size=11), title_font_size=16)
+    return fig
+
+
+def get_early_warnings():
+    surv = get_market_surveillance()
+    if surv.empty: return []
+    warnings = []
+    for _, row in surv[surv['risk_score'] >= 75].iterrows():
+        warnings.append({'level': '🔴 HIGH', 'neighbourhood': row['neighbourhood'],
+                         'message': f"Risk {row['risk_score']:.0f}/100 — {row['entire_home_pct']:.0f}% entire homes, {row['licensed_pct']:.0f}% licensed"})
+    for _, row in surv[(surv['occupancy_z'] < -0.8) & (surv['listing_count'] > surv['listing_count'].median())].iterrows():
+        warnings.append({'level': '🟠 MEDIUM', 'neighbourhood': row['neighbourhood'],
+                         'message': f"Occupancy {row['avg_occupancy']:.0f}% is {row['occupancy_z']:.1f}σ below avg — oversupply risk"})
+    for _, row in surv[surv['price_z'] > 1.5].iterrows():
+        warnings.append({'level': '🟡 INFO', 'neighbourhood': row['neighbourhood'],
+                         'message': f"Price €{row['avg_price']:.0f} is {row['price_z']:.1f}σ above avg — potential overheating"})
+    for _, row in surv[surv['licensed_pct'] < 40].iterrows():
+        warnings.append({'level': '🔴 HIGH', 'neighbourhood': row['neighbourhood'],
+                         'message': f"Only {row['licensed_pct']:.0f}% licensed — regulatory exposure"})
+    return sorted(warnings, key=lambda w: {'🔴 HIGH':0,'🟠 MEDIUM':1,'🟡 INFO':2}[w['level']])[:12]
+
+
+def generate_market_briefing():
+    listings = LISTINGS_DF
+    surv = get_market_surveillance()
+    if listings.empty or surv.empty: return "Data unavailable."
+    kpi = get_kpi_metrics()
+    top_occ = surv.nlargest(3, 'avg_occupancy')
+    top_risk = surv.nlargest(3, 'risk_score')
+    top_opp = surv.nlargest(3, 'opportunity_score')
+    low_c = surv.nsmallest(3, 'licensed_pct')
+    return f"""
+### 📊 Amsterdam Market Intelligence Briefing
+
+**Market Snapshot:** {kpi.get('total_listings','N/A')} active listings across {len(surv)} neighbourhoods,
+avg. nightly rate {kpi.get('avg_price','N/A')}, {kpi.get('avg_occupancy','N/A')} occupancy.
+
+#### 🔥 Demand Hotspots
+**{top_occ.iloc[0]['neighbourhood']}** ({top_occ.iloc[0]['avg_occupancy']:.0f}% occ.),
+**{top_occ.iloc[1]['neighbourhood']}** ({top_occ.iloc[1]['avg_occupancy']:.0f}%),
+**{top_occ.iloc[2]['neighbourhood']}** ({top_occ.iloc[2]['avg_occupancy']:.0f}%) —
+monitor for supply saturation.
+
+#### ⚠️ Regulatory Risk
+**{low_c.iloc[0]['neighbourhood']}** has only **{low_c.iloc[0]['licensed_pct']:.0f}%** compliance —
+highest intervention probability. Top risk: **{top_risk.iloc[0]['neighbourhood']}**
+({top_risk.iloc[0]['risk_score']:.0f}/100), **{top_risk.iloc[1]['neighbourhood']}**
+({top_risk.iloc[1]['risk_score']:.0f}/100), **{top_risk.iloc[2]['neighbourhood']}**
+({top_risk.iloc[2]['risk_score']:.0f}/100).
+
+#### 💡 Opportunities
+Prime entry: **{top_opp.iloc[0]['neighbourhood']}** (Score: {top_opp.iloc[0]['opportunity_score']:.0f}/100),
+**{top_opp.iloc[1]['neighbourhood']}** ({top_opp.iloc[1]['opportunity_score']:.0f}/100),
+**{top_opp.iloc[2]['neighbourhood']}** ({top_opp.iloc[2]['opportunity_score']:.0f}/100).
+
+#### 🎯 Recommended Actions
+1. **Immediate:** Audit {low_c.iloc[0]['neighbourhood']} for license gaps
+2. **Short-term:** Reposition pricing in {top_occ.iloc[0]['neighbourhood']} as occupancy peaks
+3. **Strategic:** Evaluate entry into {top_opp.iloc[0]['neighbourhood']}
+"""
+
+
+def get_stakeholder_network_chart():
+    listings = LISTINGS_DF
+    if listings.empty: return {}
+    tree = listings.groupby(['host_category', 'neighbourhood']).agg(
+        total_revenue=('est_annual_revenue', 'sum'),
+        listing_count=('id', 'count'), avg_price=('price', 'mean'),
+    ).reset_index()
+    fig = px.sunburst(tree, path=['host_category', 'neighbourhood'], values='total_revenue',
+                      color='avg_price', color_continuous_scale='RdYlGn',
+                      hover_data={'listing_count': True, 'total_revenue': ':.0f', 'avg_price': ':.0f'},
+                      title='Stakeholder Influence: Host Type → Neighbourhood → Revenue Share')
+    fig.update_layout(height=550, margin=dict(l=20, r=20, t=50, b=20),
+                      font=dict(size=11), title_font_size=16)
+    return fig
+
+
+def get_professionalization_chart():
+    listings = LISTINGS_DF
+    if listings.empty: return {}
+    prof = listings.groupby('neighbourhood')['host_category'].value_counts().unstack(fill_value=0)
+    prof_pct = prof.div(prof.sum(axis=1), axis=0) * 100
+    prof_pct = prof_pct.sort_values('Professional (6+)', ascending=True)
+    fig = go.Figure()
+    for cat, color in HOST_CATEGORY_COLORS.items():
+        if cat in prof_pct.columns:
+            fig.add_trace(go.Bar(y=prof_pct.index, x=prof_pct[cat], name=cat,
+                                 orientation='h', marker_color=color,
+                                 text=prof_pct[cat].round(0).astype(str)+'%'))
+    fig.update_layout(title='Host Professionalization by Neighbourhood (% of Listings)',
+                      barmode='stack', height=max(400, len(prof_pct)*25),
+                      margin=dict(l=20, r=20, t=50, b=20),
+                      xaxis_title='Share of Listings (%)', font=dict(size=11), title_font_size=16,
+                      legend=dict(title_text="Host Category", orientation="h", y=1.12))
+    return fig
+
+
+# ── Strategic Intelligence Placeholders ────────────────
+def get_risk_opportunity_component():
+    return dcc.Graph(id="strat-risk-opportunity", figure=get_risk_opportunity_matrix_chart(), style={'height':'570px'})
+def get_price_volatility_component():
+    return dcc.Graph(id="strat-volatility", figure=get_price_volatility_chart(), style={'height':'450px'})
+def get_market_concentration_component():
+    return dcc.Graph(id="strat-concentration", figure=get_market_concentration_chart(), style={'height':'450px'})
+def get_stakeholder_network_component():
+    return dcc.Graph(id="strat-stakeholder-network", figure=get_stakeholder_network_chart(), style={'height':'570px'})
+def get_professionalization_component():
+    return dcc.Graph(id="strat-professionalization", figure=get_professionalization_chart(), style={'height':'450px'})
+
+
+# ═══════════════════════════════════════════════════════
 #  PLACEHOLDER GRAPH COMPONENTS (for layout.py)
 # ═══════════════════════════════════════════════════════
 

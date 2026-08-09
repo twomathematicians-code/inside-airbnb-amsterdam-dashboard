@@ -381,18 +381,53 @@ def tab_roi_calculator():
 
 
 # ═══════════════════════════════════════════════════════
+#  TAB 7 — STRATEGIC INTELLIGENCE
+# ═══════════════════════════════════════════════════════
+
+def tab_strategic_intelligence():
+    return dbc.Tab(label="🧠 Strategic Intel", tab_id="tab-strategic", children=[
+        html.Br(),
+        html.H3("Market Surveillance · Risk Analytics · Automated Briefings", className="mt-2"),
+
+        # Early Warning Alerts
+        dbc.Row(dbc.Col([
+            html.H5("🚨 Early Warning System", className="mb-2"),
+            html.Div(id="strat-early-warnings"),
+        ]), className="mb-4"),
+
+        # Row 1: Risk-Opportunity Matrix + Volatility
+        dbc.Row([
+            dbc.Col(charts.get_risk_opportunity_component(), width=7),
+            dbc.Col(charts.get_price_volatility_component(), width=5),
+        ], className="mb-4"),
+
+        # Row 2: Market Concentration + Stakeholder Network
+        dbc.Row([
+            dbc.Col(charts.get_market_concentration_component(), width=6),
+            dbc.Col(charts.get_stakeholder_network_component(), width=6),
+        ], className="mb-4"),
+
+        # Row 3: Professionalization + Auto-Briefing
+        dbc.Row([
+            dbc.Col(charts.get_professionalization_component(), width=6),
+            dbc.Col(dbc.Card([
+                dbc.CardHeader(html.H5("🤖 Automated Market Briefing", className="mb-0")),
+                dbc.CardBody(dcc.Markdown(id="strat-briefing", children=charts.generate_market_briefing(),
+                                          style={"maxHeight": "420px", "overflowY": "auto", "fontSize": "13px"})),
+            ]), width=6),
+        ], className="mb-4"),
+    ])
+
+
+# ═══════════════════════════════════════════════════════
 #  MAIN LAYOUT COMPOSITION
 # ═══════════════════════════════════════════════════════
 
 def get_app_layout():
     return dbc.Container([
-        # Hidden interval for live refresh
         dcc.Interval(id='live-refresh-interval', interval=5 * 60 * 1000, n_intervals=0),
-
-        # Hidden div for storing refresh timestamp
         html.Div(id='refresh-timestamp-store', style={'display': 'none'}),
 
-        # Header
         dbc.Row(dbc.Col(html.H1(
             "Inside Airbnb Amsterdam — Business Intelligence Dashboard",
             className="mt-3 mb-1"
@@ -403,19 +438,16 @@ def get_app_layout():
                    className="text-muted mb-2")
         )),
 
-        # Live freshness badge
         get_data_freshness_badge(),
-
-        # KPI Cards
         get_kpi_header(),
 
-        # Tabs
         dbc.Tabs([
             tab_market_overview(),
             tab_business_intelligence(),
             tab_policy_compliance(),
             tab_data_explorer(),
             tab_roi_calculator(),
+            tab_strategic_intelligence(),
             tab_about(),
         ], id="dashboard-tabs", active_tab="tab-market", className="mb-4"),
 

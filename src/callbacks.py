@@ -383,4 +383,36 @@ def register_callbacks(app):
 
         return freshness, kpi_cards
 
+    # ═══════════════════════════════════════════════════
+    #  STRATEGIC INTELLIGENCE — Early Warnings + Briefing
+    # ═══════════════════════════════════════════════════
+
+    @app.callback(
+        Output('strat-early-warnings', 'children'),
+        Input('live-refresh-interval', 'n_intervals')
+    )
+    def update_early_warnings(_):
+        warnings = charts.get_early_warnings()
+        if not warnings:
+            return html.P("No active warnings — market conditions are stable.", className="text-success")
+
+        level_colors = {'🔴 HIGH': 'danger', '🟠 MEDIUM': 'warning', '🟡 INFO': 'info'}
+        cards = []
+        for w in warnings:
+            cards.append(dbc.Col(dbc.Card([
+                dbc.CardBody([
+                    html.Span(w['level'], className=f"badge bg-{level_colors.get(w['level'],'secondary')} me-2"),
+                    html.Strong(w['neighbourhood']),
+                    html.P(w['message'], className="small mt-1 mb-0 text-muted"),
+                ])
+            ], color=level_colors.get(w['level'], 'light'), outline=True), width=4, className="mb-2"))
+        return dbc.Row(cards, className="g-2")
+
+    @app.callback(
+        Output('strat-briefing', 'children'),
+        Input('live-refresh-interval', 'n_intervals')
+    )
+    def update_briefing(_):
+        return charts.generate_market_briefing()
+
     pass
