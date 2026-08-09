@@ -4,7 +4,7 @@
 
 services:
   - type: web
-    name: airbnb-gent-dashboard
+    name: airbnb-amsterdam-dashboard
     env: docker
     region: frankfurt  # Closest to Belgium data
     plan: free
