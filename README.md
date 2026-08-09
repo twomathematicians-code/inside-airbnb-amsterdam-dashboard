@@ -1,107 +1,110 @@
-# 🏠 Inside Airbnb Amsterdam — Business Intelligence Dashboard
+# 🏠 Inside Airbnb Amsterdam — Strategic Intelligence Dashboard
 
-**Production-grade interactive analytics platform** for housing market intelligence, built with **Dash + Plotly**. Multi-tab dashboard with live refresh, KPI monitoring, and cloud deployment — designed for property owners, investors, tourism boards, and city regulators.
+**Production-grade market intelligence platform** for Airbnb housing analytics — 7 tabs, 20+ visualizations, live refresh, early warning system, automated briefings, and one-click cloud deployment.
 
 <p align="center">
-  <img src="assets/chart-map.png" alt="Geospatial Analysis" width="800"/>
+  <img src="assets/chart-map.png" alt="Amsterdam Geospatial Intelligence" width="800"/>
 </p>
 
 ---
 
-## 🎯 Business Problems This Dashboard Solves
+## 🧠 Architecture: EU Policy Intelligence → Housing Market Intelligence
 
-| Stakeholder | Problem | Solution |
-|---|---|---|
-| **Property Owners / Hosts** | "How should I price my listing?" | Pricing percentile guide, revenue estimation, competitive benchmarking |
-| **Real Estate Investors** | "Which neighbourhood has the best ROI?" | Occupancy heat maps, demand–supply matrix, revenue treemaps |
-| **Tourism Boards** | "Where are visitors concentrated?" | Demand proxy mapping, booking density, capacity planning |
-| **City Regulators** | "Are short-term rentals displacing housing?" | Entire-home share tracking, license compliance monitoring, policy impact dashboards |
-| **Researchers** | "What is the market structure?" | Host concentration analysis, spatial inequality measurement, pricing distribution |
+This dashboard implements the **full intelligence cycle** — from raw data ingestion to automated strategic briefings:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                   DATA ENGINEERING LAYER                     │
+│  Inside Airbnb CSV + GeoJSON → Pandas ETL → Derived Metrics  │
+├──────────────────────────────────────────────────────────────┤
+│                    ANALYTICS ENGINE                          │
+│  Market Surveillance · Risk Scoring · Anomaly Detection      │
+│  Stakeholder Profiling · Concentration Analysis (HHI)        │
+├──────────────────────────────────────────────────────────────┤
+│                  STRATEGIC INTELLIGENCE                      │
+│  Early Warning System · Automated Briefings                  │
+│  Opportunity Scoring · Strategic Positioning Matrix          │
+├──────────────────────────────────────────────────────────────┤
+│                   BUSINESS LAYER                             │
+│  Data Explorer · ROI Calculator · Neighbourhood Comparison   │
+│  Policy Recommendations · CSV Export                         │
+└──────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 📊 Dashboard Tabs
 
-### 📍 Tab 1 — Market Overview
-Price distribution histogram, room type displacement pie chart, and interactive choropleth map with master neighbourhood filter.
+### 📍 Market Overview
+Price distribution, room type displacement pie, interactive choropleth map with master filter.
 
-<p align="center">
-  <img src="assets/chart-price-histogram.png" alt="Price Distribution" width="400"/>
-  <img src="assets/chart-room-type-pie.png" alt="Room Type Displacement" width="300"/>
-</p>
+### 💼 Business Intelligence (7 charts)
+Occupancy rates, revenue boxplots, demand–supply matrix, host concentration, pricing percentile guide, value matrix, revenue treemap.
 
-### 💼 Tab 2 — Business Intelligence
-Occupancy rates, revenue projections, demand–supply matrix, host concentration analysis, pricing position guide, and value matrix.
+### 📋 Policy & Compliance
+Minimum nights distribution, license compliance tracking, occupancy–price optimization, actionable policy recommendations.
 
-<p align="center">
-  <img src="assets/bi-occupancy.png" alt="Occupancy Analysis" width="400"/>
-  <img src="assets/bi-demand-supply.png" alt="Demand-Supply Matrix" width="400"/>
-</p>
+### 🔍 Data Explorer
+Search by host/listing name, filter by neighbourhood/room type/price range, sortable DataTable, one-click CSV download.
 
-<p align="center">
-  <img src="assets/bi-pricing-position.png" alt="Pricing Guide" width="400"/>
-  <img src="assets/bi-revenue-treemap.png" alt="Revenue Treemap" width="400"/>
-</p>
+### 🧮 ROI Calculator + Comparison
+Revenue projection (price × occupancy × listings) with market benchmarks. Side-by-side neighbourhood comparison across 10 KPIs.
 
-### 📋 Tab 3 — Policy & Compliance
-Minimum nights distribution, license compliance tracking, occupancy–price optimization landscape, and actionable policy recommendations.
+### 🧠 Strategic Intelligence (NEW)
+| Component | Description |
+|---|---|
+| **🚨 Early Warning System** | Auto-detected alerts: high-risk areas, occupancy anomalies, price overheating, compliance gaps |
+| **📊 Risk–Opportunity Matrix** | Strategic positioning scatter — 4-quadrant analysis of all 22 neighbourhoods |
+| **📉 Price Volatility Index** | CV% per neighbourhood with green/yellow/red indicators |
+| **🏛️ Market Concentration (HHI)** | Herfindahl-Hirschman Index — antitrust-style revenue concentration measurement |
+| **☀️ Stakeholder Influence Map** | Sunburst: Host Type → Neighbourhood → Revenue Share |
+| **📊 Host Professionalization** | Stacked % of Individual / Small / Professional operators per area |
+| **🤖 Automated Market Briefing** | Rule-based AI narrative: demand hotspots, regulatory risk, opportunities, 3 recommended actions |
 
-<p align="center">
-  <img src="assets/policy-license.png" alt="License Compliance" width="400"/>
-  <img src="assets/policy-occupancy-timeline.png" alt="Occupancy vs Price" width="400"/>
-</p>
+---
+
+## 🎯 Business Problems Solved
+
+| Stakeholder | Problem | Dashboard Solution |
+|---|---|---|
+| **Property Owners / Hosts** | "How should I price?" | Pricing guide, ROI calculator, volatility index |
+| **Real Estate Investors** | "Which neighbourhood?" | Risk–Opportunity matrix, HHI concentration, revenue treemap |
+| **Tourism Boards** | "Where are visitors?" | Demand proxy mapping, occupancy heat maps |
+| **City Regulators** | "Who's non-compliant?" | License compliance, professionalization tracking, policy recs |
+| **Policy Analysts** | "What's the market structure?" | Stakeholder sunburst, host concentration, automated briefings |
 
 ---
 
 ## 🔄 Live Features
 
-- **🟢 Auto-refresh** every 5 minutes via `dcc.Interval` — KPI cards update automatically
-- **Live timestamp badge** showing last data refresh
-- **6 KPI cards**: Total Listings, Avg. Price, Avg. Occupancy, Est. Annual Revenue, Entire Home Share, License Compliance
-
-### 🔍 Tab 4 — Data Explorer (NEW)
-Search, filter, sort, and export listing data. Built-in Dash DataTable with native column filtering and one-click CSV download.
-
-### 🧮 Tab 5 — ROI Calculator + Neighbourhood Comparison (NEW)
-- **Revenue Projection**: Adjust price, occupancy, and listing count — see annual/monthly revenue projections with market benchmarks
-- **Side-by-Side Comparison**: Compare any two neighbourhoods across 10 KPIs (price, occupancy, revenue, compliance, host type, etc.)
+- 🟢 **Auto-refresh** every 5 minutes — KPIs, early warnings, and briefings update automatically
+- **6 KPI cards**: Listings, Avg Price, Occupancy, Revenue, Entire Home Share, License Compliance
+- **12-point Early Warning System** with color-coded risk levels
+- **Automated narrative briefings** generated from live data
 
 ---
 
-## ☁️ Deploy Live in 60 Seconds
+## ☁️ Deploy Live — One Click
 
-### Option 1: Render.com (Free — Recommended)
+<p align="center">
+  <a href="https://render.com/deploy?repo=https://github.com/twomathematicians-code/inside-airbnb-amsterdam-dashboard">
+    <img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" height="40"/>
+  </a>
+</p>
 
-1. Fork this repo → [github.com/twomathematicians-code/inside-airbnb-amsterdam-dashboard](https://github.com/twomathematicians-code/inside-airbnb-amsterdam-dashboard)
+Click the button above → sign in with GitHub → Render auto-detects `render.yaml` → deploys in ~3 minutes.
+
+**Or manually:**
+1. Fork → [github.com/twomathematicians-code/inside-airbnb-amsterdam-dashboard](https://github.com/twomathematicians-code/inside-airbnb-amsterdam-dashboard)
 2. Go to [dashboard.render.com](https://dashboard.render.com) → **New Web Service**
-3. Connect your forked repo — Render auto-detects `render.yaml`
-4. Click **Deploy** — live at `https://airbnb-amsterdam-dashboard.onrender.com`
+3. Connect repo → Render auto-detects `render.yaml` → **Deploy**
+4. Live at `https://airbnb-amsterdam-dashboard.onrender.com`
 
-> ⚠️ Free tier spins down after 15 min of inactivity. First request wakes it (takes ~30s).
-
-### Option 2: Docker (Any Cloud)
-- **Tab-independent filters** — each tab has its own neighbourhood selector
-
----
-
-## ☁️ Cloud Deployment
-
+### Docker (Any Cloud)
 ```bash
-# Docker (one command)
 docker compose up -d
-
-# Or deploy to Render.com in 60 seconds:
-# 1. Fork this repo
-# 2. Connect to https://dashboard.render.com
-# 3. It auto-detects render.yaml
+# → http://localhost:8051
 ```
-
-| Platform | Config | Status |
-|---|---|---|
-| **Docker** | `Dockerfile` + `docker-compose.yml` | ✅ Ready |
-| **Render** | `render.yaml` (free tier) | ✅ Ready |
-| **Railway** | Auto-detects Dockerfile | ✅ Compatible |
-| **Fly.io** | `fly launch` from Dockerfile | ✅ Compatible |
 
 ---
 
@@ -109,12 +112,12 @@ docker compose up -d
 
 | Layer | Technology |
 |---|---|
-| Framework | Dash 3.x + Flask |
-| Charts | Plotly Express, Plotly Graph Objects |
-| UI | Dash Bootstrap Components (MINTY theme) |
-| Data | Pandas, NumPy |
-| Geo | GeoJSON + Mapbox |
-| Deployment | Docker, Gunicorn, Render |
+| Framework | Dash 3.x + Flask + Gunicorn |
+| Charts | Plotly Express, Graph Objects, Sunburst |
+| Data | Pandas, NumPy, GeoJSON |
+| UI | Dash Bootstrap Components (MINTY) |
+| Analytics | Z-score anomaly detection, HHI, CV%, composite risk scoring |
+| Deployment | Docker, Render, Railway, Fly.io |
 
 ---
 
@@ -133,31 +136,22 @@ python app.py
 ## 📁 Structure
 
 ```
-├── README.md
-├── TECHNICAL_SOP.md
-├── LICENSE
-├── Dockerfile
-├── docker-compose.yml
-├── render.yaml
-├── .gitignore
-├── assets/              # Chart screenshots
+├── README.md · TECHNICAL_SOP.md · LICENSE
+├── Dockerfile · docker-compose.yml · render.yaml
+├── assets/ (14 chart screenshots)
 └── src/
-    ├── app.py           # Entry point + server config
-    ├── layout.py        # Multi-tab DOM composition
-    ├── charts.py        # 14 chart functions + data pipeline
-    ├── callbacks.py     # 15+ reactive callbacks + live refresh
-    ├── export_charts.py # Screenshot generation utility
-    ├── requirements.txt
+    ├── app.py            # Entry point + WSGI server
+    ├── layout.py         # 7-tab DOM composition
+    ├── charts.py         # 25+ chart/analytics functions
+    ├── callbacks.py      # 20+ reactive callbacks
     └── data/
-        ├── listings.csv
-        └── neighbourhoods.geojson
+        ├── listings.csv           # 16,770 Amsterdam listings
+        └── neighbourhoods.geojson # 22 neighbourhoods
 ```
 
----
+## 📊 Data
 
-## 📊 Data Attribution
-
-Data from [Inside Airbnb](http://insideairbnb.com/get-the-data.html), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). This is an independent analysis not affiliated with Airbnb Inc.
+Amsterdam listings (June 2026) from [Inside Airbnb](http://insideairbnb.com/get-the-data.html), CC BY 4.0. Independent analysis — not affiliated with Airbnb Inc.
 
 ## 🔒 License
 
