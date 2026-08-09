@@ -1,7 +1,7 @@
 # Inside Airbnb Gent Dashboard 🏠📊
 
 **Interactive Data Visualization Lab — Lab 01**  
-*Mahesh Pravinsinh Solanki & Furaha Chaula*
+*Interactive Data Visualizations Lab — Semester 02*
 
 A Dash/Plotly web dashboard that analyzes **Airbnb listings in Ghent, Belgium** (2025) to investigate the impact of short-term rentals on housing availability and residential communities.
 
@@ -87,10 +87,5 @@ Open your browser to **http://localhost:8051**
 Data from [Inside Airbnb](http://insideairbnb.com/get-the-data.html), licensed under [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
 
 ---
-
-## 👨‍🎓 Authors
-
-- **Mahesh Pravinsinh Solanki** — [GitHub](https://github.com/twomathematicians-code)
-- **Furaha Chaula**
 
 *Created for Interactive Data Visualizations Lab, Semester 02, 2025*
