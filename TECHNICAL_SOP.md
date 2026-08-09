@@ -1,4 +1,4 @@
-# Technical SOP — Inside Airbnb Gent Business Intelligence Dashboard
+# Technical SOP — Inside Airbnb Amsterdam Business Intelligence Dashboard
 
 **Standard Operating Procedure** — architecture, deployment, testing, and maintenance.
 
@@ -152,7 +152,7 @@ docker compose down               # Stop
 ### 5.3 Render.com (Free Tier)
 1. Fork repo → connect in Render dashboard
 2. `render.yaml` auto-detected — no manual config needed
-3. Deploys at `https://airbnb-gent-dashboard.onrender.com`
+3. Deploys at `https://airbnb-amsterdam-dashboard.onrender.com`
 4. Free tier: spins down after 15 min inactivity, auto-wakes on next request
 
 ### 5.4 Environment Variables

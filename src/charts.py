@@ -1,6 +1,6 @@
 # charts.py
 """
-Data pipeline & Plotly figure factory for Inside Airbnb Gent Dashboard.
+Data pipeline & Plotly figure factory for Inside Airbnb Amsterdam Dashboard.
 All data loads once at module import (singleton pattern).
 Every chart function returns a Plotly figure dict.
 """
@@ -22,6 +22,9 @@ def _load_listings_data(path=LISTINGS_PATH):
     try:
         df = pd.read_csv(path)
         df['price'] = df['price'].replace({r'\$': '', ',': ''}, regex=True).astype(float)
+        # Normalize neighbourhood column (some cities use 'neighbourhood_cleansed')
+        if 'neighbourhood_cleansed' in df.columns and df['neighbourhood'].isna().all():
+            df['neighbourhood'] = df['neighbourhood_cleansed']
         # Derived business metrics
         df['booked_days'] = 365 - df['availability_365']
         df['occupancy_pct'] = (df['booked_days'] / 365 * 100).round(1)

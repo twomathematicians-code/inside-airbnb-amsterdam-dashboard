@@ -206,7 +206,7 @@ def tab_about():
                 dbc.CardBody(dcc.Markdown("""
                 - **Inside Airbnb** — [insideairbnb.com](http://insideairbnb.com/get-the-data.html)
                 - Data licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
-                - Ghent listings snapshot (2025)
+                - Amsterdam listings snapshot (June 2026)
                 - Neighbourhood boundaries via GeoJSON
                 """))
             ], className="mb-3"), width=6),
@@ -259,7 +259,7 @@ def get_app_layout():
 
         # Header
         dbc.Row(dbc.Col(html.H1(
-            "Inside Airbnb Gent — Business Intelligence Dashboard",
+            "Inside Airbnb Amsterdam — Business Intelligence Dashboard",
             className="mt-3 mb-1"
         ))),
 

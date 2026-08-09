@@ -3,7 +3,7 @@ version: "3.9"
 services:
   dashboard:
     build: .
-    container_name: airbnb-gent-dashboard
+    container_name: airbnb-amsterdam-dashboard
     ports:
       - "${PORT:-8051}:8051"
     environment:

@@ -1,10 +1,10 @@
-# ── Inside Airbnb Gent Dashboard — Production Docker Image ──
+# ── Inside Airbnb Amsterdam Dashboard — Production Docker Image ──
 
 FROM python:3.11-slim
 
-LABEL org.opencontainers.image.title="Inside Airbnb Gent Dashboard"
+LABEL org.opencontainers.image.title="Inside Airbnb Amsterdam Dashboard"
 LABEL org.opencontainers.image.description="Business intelligence dashboard for Airbnb housing market analytics"
-LABEL org.opencontainers.image.source="https://github.com/twomathematicians-code/inside-airbnb-gent-dashboard"
+LABEL org.opencontainers.image.source="https://github.com/twomathematicians-code/inside-airbnb-amsterdam-dashboard"
 
 # Install system deps for Plotly image export
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -1,4 +1,4 @@
-# 🏠 Inside Airbnb Gent — Business Intelligence Dashboard
+# 🏠 Inside Airbnb Amsterdam — Business Intelligence Dashboard
 
 **Production-grade interactive analytics platform** for housing market intelligence, built with **Dash + Plotly**. Multi-tab dashboard with live refresh, KPI monitoring, and cloud deployment — designed for property owners, investors, tourism boards, and city regulators.
 
@@ -99,8 +99,8 @@ docker compose up -d
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/twomathematicians-code/inside-airbnb-gent-dashboard.git
-cd inside-airbnb-gent-dashboard/src
+git clone https://github.com/twomathematicians-code/inside-airbnb-amsterdam-dashboard.git
+cd inside-airbnb-amsterdam-dashboard/src
 pip install -r requirements.txt
 python app.py
 # → http://localhost:8051
