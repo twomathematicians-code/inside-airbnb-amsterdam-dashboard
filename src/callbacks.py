@@ -15,39 +15,32 @@ import pandas as pd
 def register_callbacks(app):
 
     # ═══════════════════════════════════════════════════
-    #  SIDEBAR NAVIGATION — Page Switching
+    #  SIDEBAR NAVIGATION — Page Switching (11 pages)
     # ═══════════════════════════════════════════════════
 
+    ALL_PAGES = ["exec", "market", "revenue", "hosts", "trust", "policy", "bi", "strategic", "explorer", "roi", "about"]
+
     @app.callback(
-        [Output(f"page-{pid}", "style") for pid in
-         ["market", "bi", "policy", "explorer", "roi", "strategic", "about"]] +
-        [Output(f"nav-page-{pid}", "className") for pid in
-         ["market", "bi", "policy", "explorer", "roi", "strategic", "about"]],
-        [Input(f"nav-page-{pid}", "n_clicks") for pid in
-         ["market", "bi", "policy", "explorer", "roi", "strategic", "about"]],
+        [Output(f"page-{pid}", "style") for pid in ALL_PAGES] +
+        [Output(f"nav-page-{pid}", "className") for pid in ALL_PAGES],
+        [Input(f"nav-page-{pid}", "n_clicks") for pid in ALL_PAGES],
     )
     def switch_page(*args):
         ctx = dcc.callback_context
         if not ctx.triggered:
-            # Default: show market
-            styles = [{"display": "block"}] + [{"display": "none"}] * 6
-            navs = ["nav-item active"] + ["nav-item"] * 6
+            styles = [{"display": "block"}] + [{"display": "none"}] * (len(ALL_PAGES) - 1)
+            navs = ["nav-item active"] + ["nav-item"] * (len(ALL_PAGES) - 1)
             return styles + navs
 
         triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
-        page_map = {
-            'nav-page-market': 0, 'nav-page-bi': 1, 'nav-page-policy': 2,
-            'nav-page-explorer': 3, 'nav-page-roi': 4, 'nav-page-strategic': 5,
-            'nav-page-about': 6,
-        }
-        idx = page_map.get(triggered_id, 0)
+        idx = 0
+        for i, pid in enumerate(ALL_PAGES):
+            if f'nav-page-{pid}' == triggered_id:
+                idx = i
+                break
 
-        styles = []
-        navs = []
-        for i in range(7):
-            styles.append({"display": "block"} if i == idx else {"display": "none"})
-            navs.append("nav-item active" if i == idx else "nav-item")
-
+        styles = [{"display": "block"} if i == idx else {"display": "none"} for i in range(len(ALL_PAGES))]
+        navs = ["nav-item active" if i == idx else "nav-item" for i in range(len(ALL_PAGES))]
         return styles + navs
 
     # ═══════════════════════════════════════════════════

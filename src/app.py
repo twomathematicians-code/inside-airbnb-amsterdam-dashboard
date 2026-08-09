@@ -36,7 +36,7 @@ if __name__ == "__main__":
     print(f"\n{'='*60}")
     print(f"  🏠 Airbnb Amsterdam — Strategic Intelligence Dashboard")
     print(f"  🌐 http://{HOST}:{PORT}")
-    print(f"  📊 7 Pages | 20+ Charts | Early Warnings | Auto-Briefings")
+    print(f"  📊 11 Pages | 30+ Charts | SWOT | Role-Based Dashboards")
     print(f"  🎨 Industrial Dark Theme | 🔄 Live Refresh 5min")
     print(f"{'='*60}\n")
     app.run(

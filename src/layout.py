@@ -51,12 +51,16 @@ def neighbourhood_filter(id, label="Neighbourhood"):
 
 def sidebar():
     nav_items = [
+        ("🏢", "Executive View", "page-exec"),
         ("📍", "Market Overview", "page-market"),
-        ("💼", "Business Intelligence", "page-bi"),
+        ("💰", "Revenue Optimization", "page-revenue"),
+        ("🌱", "Host Growth", "page-hosts"),
+        ("🛡️", "Trust & Safety", "page-trust"),
         ("📋", "Policy & Compliance", "page-policy"),
+        ("💼", "Business Intelligence", "page-bi"),
+        ("🧠", "Strategic Intel", "page-strategic"),
         ("🔍", "Data Explorer", "page-explorer"),
         ("🧮", "ROI Calculator", "page-roi"),
-        ("🧠", "Strategic Intelligence", "page-strategic"),
         ("ℹ️", "About", "page-about"),
     ]
 
@@ -69,7 +73,7 @@ def sidebar():
         html.Div([
             html.Button(
                 [html.Span(icon, className="nav-icon"), html.Span(label)],
-                id=f"nav-{page_id}", className="nav-item active" if page_id == "page-market" else "nav-item",
+                id=f"nav-{page_id}", className="nav-item active" if page_id == "page-exec" else "nav-item",
             )
             for icon, label, page_id in nav_items
         ], className="sidebar-nav", id="sidebar-nav-container"),
@@ -77,7 +81,7 @@ def sidebar():
         html.Div([
             html.Div([html.Div(className="live-dot"), "System Live"], className="live-indicator"),
             html.Div(id="sidebar-refresh-time", children=f"Updated: {datetime.now().strftime('%H:%M')}"),
-            html.Div("v4.1 · MIT License", style={"marginTop": "4px"}),
+            html.Div("v5.1 · MIT License", style={"marginTop": "4px"}),
         ], className="sidebar-footer"),
     ], className="sidebar")
 
@@ -337,6 +341,138 @@ def page_strategic_intelligence():
 
 
 # ═══════════════════════════════════════════════════════
+#  PAGE: Executive Dashboard
+# ═══════════════════════════════════════════════════════
+
+def page_executive():
+    swot = charts.get_swot_analysis()
+    return html.Div([
+        html.Div([html.H1("Executive Dashboard", className="top-bar-title"),
+                  html.Span("👑 C-Suite", className="badge badge-info")], className="top-bar"),
+        kpi_header(),
+
+        # SWOT Matrix
+        html.Div([
+            html.Div(content_card("💪 Strengths", html.Ul([
+                html.Li(s) for s in swot.get('strengths', [])
+            ], style={"color": "var(--accent-green)", "fontSize": "13px", "lineHeight": "1.6", "paddingLeft": "18px"})),
+                     style={"flex": "1"}),
+            html.Div(content_card("⚠️ Weaknesses", html.Ul([
+                html.Li(w) for w in swot.get('weaknesses', [])
+            ], style={"color": "var(--accent-red)", "fontSize": "13px", "lineHeight": "1.6", "paddingLeft": "18px"})),
+                     style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "16px", "flexWrap": "wrap", "marginBottom": "16px"}),
+
+        html.Div([
+            html.Div(content_card("🚀 Opportunities", html.Ul([
+                html.Li(o) for o in swot.get('opportunities', [])
+            ], style={"color": "var(--accent-blue)", "fontSize": "13px", "lineHeight": "1.6", "paddingLeft": "18px"})),
+                     style={"flex": "1"}),
+            html.Div(content_card("🔴 Threats", html.Ul([
+                html.Li(t) for t in swot.get('threats', [])
+            ], style={"color": "var(--accent-amber)", "fontSize": "13px", "lineHeight": "1.6", "paddingLeft": "18px"})),
+                     style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "16px", "flexWrap": "wrap", "marginBottom": "16px"}),
+
+        # SWOT Metrics
+        html.Div([
+            html.Div([html.Div(swot.get('metrics', {}).get('avg_occ', '-'), className="kpi-value"),
+                      html.Div("Occupancy", className="kpi-label")], className="kpi-card info"),
+            html.Div([html.Div(swot.get('metrics', {}).get('avg_rev', '-'), className="kpi-value"),
+                      html.Div("Avg Revenue", className="kpi-label")], className="kpi-card info"),
+            html.Div([html.Div(swot.get('metrics', {}).get('entire_pct', '-'), className="kpi-value"),
+                      html.Div("Entire Home", className="kpi-label")], className="kpi-card warning"),
+            html.Div([html.Div(swot.get('metrics', {}).get('licensed_pct', '-'), className="kpi-value"),
+                      html.Div("Compliance", className="kpi-label")], className="kpi-card danger"),
+            html.Div([html.Div(swot.get('metrics', {}).get('risk_areas', '-'), className="kpi-value"),
+                      html.Div("Risk Areas", className="kpi-label")], className="kpi-card danger"),
+            html.Div([html.Div(swot.get('metrics', {}).get('opp_areas', '-'), className="kpi-value"),
+                      html.Div("Oppty Areas", className="kpi-label")], className="kpi-card success"),
+        ], className="kpi-grid"),
+
+        html.Div([
+            html.Div(charts.get_revenue_waterfall_component(), style={"flex": "1", "minWidth": "400px"}),
+            html.Div(charts.get_market_coverage_component(), style={"flex": "1", "minWidth": "350px"}),
+        ], style={"display": "flex", "gap": "16px", "flexWrap": "wrap", "marginBottom": "16px"}),
+    ], id="page-exec")
+
+
+# ═══════════════════════════════════════════════════════
+#  PAGE: Revenue Optimization
+# ═══════════════════════════════════════════════════════
+
+def page_revenue():
+    return html.Div([
+        html.Div([html.H1("Revenue Optimization", className="top-bar-title"),
+                  html.Span("💰 Revenue Team", className="badge badge-live")], className="top-bar"),
+        kpi_header(),
+
+        html.Div([
+            html.Div(charts.get_revenue_leakage_component(), style={"flex": "1", "minWidth": "450px"}),
+            html.Div(charts.get_pricing_optimization_component(), style={"flex": "1", "minWidth": "400px"}),
+        ], style={"display": "flex", "gap": "16px", "flexWrap": "wrap", "marginBottom": "16px"}),
+
+        content_card("Revenue Optimization Actions", html.Ul([
+            html.Li("Correct underpricing in top leakage areas — estimated millions in recoverable revenue"),
+            html.Li("Align pricing to IQR ranges — price within 25th-75th percentile for each room type"),
+            html.Li("Monitor occupancy daily — price drops of 5-10% in areas below 50% occupancy"),
+            html.Li("Seasonal surge pricing: increase 15-25% during peak events (King's Day, IBC, ADE)"),
+            html.Li("Minimum stay adjustments: 3+ nights during events to capture premium bookings"),
+        ], style={"color": "var(--text-secondary)", "fontSize": "13px", "lineHeight": "1.8", "paddingLeft": "20px"})),
+    ], id="page-revenue")
+
+
+# ═══════════════════════════════════════════════════════
+#  PAGE: Host Growth
+# ═══════════════════════════════════════════════════════
+
+def page_host_growth():
+    return html.Div([
+        html.Div([html.H1("Host Growth", className="top-bar-title"),
+                  html.Span("🌱 Acquisition Team", className="badge badge-live")], className="top-bar"),
+        kpi_header(),
+
+        html.Div([
+            html.Div(charts.get_host_acquisition_component(), style={"flex": "1", "minWidth": "400px"}),
+            html.Div(charts.get_host_quality_component(), style={"flex": "1", "minWidth": "400px"}),
+        ], style={"display": "flex", "gap": "16px", "flexWrap": "wrap", "marginBottom": "16px"}),
+
+        content_card("Host Growth Strategy", html.Ul([
+            html.Li("Priority acquisition: target top-5 neighbourhoods with high demand, low supply"),
+            html.Li("Nurture 'Rising (2-5 reviews)' hosts — highest occupancy correlation with review growth"),
+            html.Li("Superhost pipeline: identify hosts with 40+ reviews and 80%+ occupancy for fast-track"),
+            html.Li("Onboarding incentive: offer reduced fees for first 3 months in high-demand underserved areas"),
+            html.Li("Retention risk: monitor hosts with declining review velocity — early intervention trigger"),
+        ], style={"color": "var(--text-secondary)", "fontSize": "13px", "lineHeight": "1.8", "paddingLeft": "20px"})),
+    ], id="page-hosts")
+
+
+# ═══════════════════════════════════════════════════════
+#  PAGE: Trust & Safety
+# ═══════════════════════════════════════════════════════
+
+def page_trust_safety():
+    return html.Div([
+        html.Div([html.H1("Trust & Safety", className="top-bar-title"),
+                  html.Span("🛡️ Compliance Team", className="badge badge-warning")], className="top-bar"),
+        kpi_header(),
+
+        html.Div([
+            html.Div(charts.get_trust_risk_component(), style={"flex": "1", "minWidth": "450px"}),
+            html.Div(charts.get_guest_experience_component(), style={"flex": "1", "minWidth": "400px"}),
+        ], style={"display": "flex", "gap": "16px", "flexWrap": "wrap", "marginBottom": "16px"}),
+
+        content_card("Trust & Safety Actions", html.Ul([
+            html.Li("High-risk zones: neighbourhoods with <50% compliance + low review activity — priority audit"),
+            html.Li("Guest experience: 1-night minimums correlate with high review velocity — promote flexibility"),
+            html.Li("License verification: implement automated license validation for all new listings"),
+            html.Li("Fraud indicators: flag listings with 0 reviews + low occupancy + high price volatility"),
+            html.Li("Transparency: require government ID verification for hosts with 6+ listings"),
+        ], style={"color": "var(--text-secondary)", "fontSize": "13px", "lineHeight": "1.8", "paddingLeft": "20px"})),
+    ], id="page-trust")
+
+
+# ═══════════════════════════════════════════════════════
 #  PAGE: About
 # ═══════════════════════════════════════════════════════
 
@@ -387,25 +523,24 @@ def page_about():
 
 def get_app_layout():
     return html.Div([
-        # Hidden state
         dcc.Interval(id='live-refresh-interval', interval=5 * 60 * 1000, n_intervals=0),
-        dcc.Store(id='active-page', data='page-market'),
+        dcc.Store(id='active-page', data='page-exec'),
         dcc.Store(id='refresh-data', data={'ts': datetime.now().isoformat()}),
-
-        # TOAST container
         html.Div(id="toast-container", className="toast-container"),
 
-        # APP SHELL
         html.Div([
             sidebar(),
             html.Div([
-                # Pages (only active one visible)
-                html.Div(page_market_overview(), id="page-market", style={"display": "block"}),
-                html.Div(page_business_intelligence(), id="page-bi", style={"display": "none"}),
+                html.Div(page_executive(), id="page-exec", style={"display": "block"}),
+                html.Div(page_market_overview(), id="page-market", style={"display": "none"}),
+                html.Div(page_revenue(), id="page-revenue", style={"display": "none"}),
+                html.Div(page_host_growth(), id="page-hosts", style={"display": "none"}),
+                html.Div(page_trust_safety(), id="page-trust", style={"display": "none"}),
                 html.Div(page_policy(), id="page-policy", style={"display": "none"}),
+                html.Div(page_business_intelligence(), id="page-bi", style={"display": "none"}),
+                html.Div(page_strategic_intelligence(), id="page-strategic", style={"display": "none"}),
                 html.Div(page_data_explorer(), id="page-explorer", style={"display": "none"}),
                 html.Div(page_roi_calculator(), id="page-roi", style={"display": "none"}),
-                html.Div(page_strategic_intelligence(), id="page-strategic", style={"display": "none"}),
                 html.Div(page_about(), id="page-about", style={"display": "none"}),
             ], className="main-content"),
         ], className="app-shell"),

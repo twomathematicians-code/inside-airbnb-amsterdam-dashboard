@@ -837,6 +837,325 @@ def get_professionalization_component():
 
 
 # ═══════════════════════════════════════════════════════
+#  SWOT ANALYSIS ENGINE
+# ═══════════════════════════════════════════════════════
+
+def get_swot_analysis():
+    """Compute data-driven SWOT: Strengths, Weaknesses, Opportunities, Threats."""
+    listings = LISTINGS_DF
+    surv = get_market_surveillance()
+    if listings.empty or surv.empty: return {}
+
+    kpi = get_kpi_metrics()
+    avg_occ = listings['occupancy_pct'].mean()
+    avg_rev = listings['est_annual_revenue'].mean()
+    entire_pct = (listings['room_type'] == 'Entire home/apt').mean() * 100
+    licensed_pct = (listings['license_status'] == 'Licensed').mean() * 100
+
+    # Top/bottom performers
+    top_occ_nb = surv.nlargest(1, 'avg_occupancy').iloc[0]
+    top_rev_nb = surv.nlargest(1, 'avg_revenue').iloc[0]
+    low_compliance_nb = surv.nsmallest(1, 'licensed_pct').iloc[0]
+    high_risk_nb = surv.nlargest(1, 'risk_score').iloc[0]
+    top_opp_nb = surv.nlargest(1, 'opportunity_score').iloc[0]
+
+    # Professional host share
+    pro_pct = (listings['host_category'] == 'Professional (6+)').mean() * 100
+
+    return {
+        'strengths': [
+            f"High average occupancy ({avg_occ:.0f}%) across all neighbourhoods — strong demand fundamentals",
+            f"Dominant entire-home segment ({entire_pct:.0f}%) — premium positioning attracts high-value guests",
+            f"Top neighbourhood {top_occ_nb['neighbourhood']} achieves {top_occ_nb['avg_occupancy']:.0f}% occupancy — proven revenue engine",
+            f"Professional hosts ({pro_pct:.0f}% of listings) drive operational excellence at scale",
+        ],
+        'weaknesses': [
+            f"License compliance at only {licensed_pct:.0f}% — significant regulatory vulnerability",
+            f"{low_compliance_nb['neighbourhood']} has just {low_compliance_nb['licensed_pct']:.0f}% compliance — concentrated enforcement risk",
+            f"High entire-home share ({entire_pct:.0f}%) creates housing displacement narrative — reputational exposure",
+            f"Price volatility (CV) exceeds 40% in {(surv['price_cv'] > 40).sum()} neighbourhoods — inconsistent guest experience",
+        ],
+        'opportunities': [
+            f"Prime expansion zone: {top_opp_nb['neighbourhood']} (Opportunity Score {top_opp_nb['opportunity_score']:.0f}/100)",
+            f"License gap represents {100-licensed_pct:.0f}% unlockable inventory through compliance programs",
+            f"Growing demand in {(surv['avg_reviews'] > surv['avg_reviews'].median()).sum()} neighbourhoods — first-mover advantage",
+            f"Private room segment underrepresented — differentiation opportunity vs. entire-home saturation",
+        ],
+        'threats': [
+            f"Amsterdam 30-night annual cap threatens {(listings['minimum_nights'] < 3).sum()} short-stay listings",
+            f"Professional operators ({pro_pct:.0f}%) face increased regulatory scrutiny — EU Digital Services Act",
+            f"High-risk neighbourhoods: {high_risk_nb['neighbourhood']} (Risk Score {high_risk_nb['risk_score']:.0f}/100)",
+            f"Market concentration (HHI > 2500) in {(surv['hhi'] > 2500).sum()} areas — antitrust exposure",
+        ],
+        'metrics': {
+            'avg_occ': f"{avg_occ:.0f}%", 'avg_rev': f"€{avg_rev:,.0f}",
+            'entire_pct': f"{entire_pct:.0f}%", 'licensed_pct': f"{licensed_pct:.0f}%",
+            'risk_areas': f"{(surv['risk_score'] > 55).sum()}/{len(surv)}",
+            'opp_areas': f"{(surv['opportunity_score'] > 55).sum()}/{len(surv)}",
+        }
+    }
+
+
+# ═══════════════════════════════════════════════════════
+#  EXECUTIVE DASHBOARD CHARTS
+# ═══════════════════════════════════════════════════════
+
+def get_revenue_waterfall_chart():
+    """Waterfall: Revenue breakdown by room type with contribution %."""
+    listings = LISTINGS_DF
+    if listings.empty: return {}
+    rev = listings.groupby('room_type', observed=False)['est_annual_revenue'].sum().sort_values(ascending=False)
+    total = rev.sum()
+    fig = go.Figure(go.Waterfall(
+        name="Revenue", orientation="v",
+        measure=["relative"] * len(rev) + ["total"],
+        x=list(rev.index) + ["Total"],
+        y=list(rev.values) + [0],
+        text=[f"€{v:,.0f}<br>({v/total*100:.1f}%)" for v in rev.values] + [f"€{total:,.0f}"],
+        connector={"line": {"color": "rgba(255,255,255,0.2)"}},
+        decreasing={"marker": {"color": ROOM_TYPE_COLORS.get(list(rev.index)[-1], '#d62728')}},
+    ))
+    fig.update_layout(title='Revenue Waterfall by Room Type', height=400,
+                      margin=dict(l=20, r=20, t=50, b=20), font=dict(size=11), title_font_size=16)
+    return fig
+
+
+def get_market_coverage_chart():
+    """Market coverage: % of neighbourhoods where Airbnb has significant presence."""
+    listings = LISTINGS_DF
+    surv = get_market_surveillance()
+    if listings.empty or surv.empty: return {}
+
+    surv['coverage_tier'] = pd.cut(surv['listing_count'], bins=[0, 50, 200, 500, 9999],
+                                    labels=['Low (<50)', 'Medium (50-200)', 'High (200-500)', 'Dominant (500+)'])
+    coverage = surv['coverage_tier'].value_counts().reset_index()
+    coverage.columns = ['Coverage Tier', 'Count']
+
+    colors = {'Dominant (500+)': '#2ca02c', 'High (200-500)': '#1f77b4',
+              'Medium (50-200)': '#ff7f0e', 'Low (<50)': '#d62728'}
+
+    fig = px.pie(coverage, values='Count', names='Coverage Tier',
+                 title='Market Coverage: Neighbourhood Penetration Tiers',
+                 color='Coverage Tier', color_discrete_map=colors, hole=0.5)
+    fig.update_traces(textinfo='percent+label')
+    fig.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20),
+                      font=dict(size=11), title_font_size=16)
+    return fig
+
+
+# ═══════════════════════════════════════════════════════
+#  REVENUE OPTIMIZATION CHARTS
+# ═══════════════════════════════════════════════════════
+
+def get_revenue_leakage_chart():
+    """Detect underpriced listings: listings priced below neighbourhood median."""
+    listings = LISTINGS_DF
+    if listings.empty: return {}
+    medians = listings.groupby('neighbourhood', observed=False)['price'].median()
+    listings_copy = listings.copy()
+    listings_copy['area_median'] = listings_copy['neighbourhood'].map(medians)
+    listings_copy['price_gap_pct'] = ((listings_copy['area_median'] - listings_copy['price']) /
+                                       listings_copy['area_median'] * 100)
+    leakage = listings_copy[listings_copy['price_gap_pct'] > 20].groupby('neighbourhood').agg(
+        underpriced_count=('id', 'count'),
+        avg_gap_pct=('price_gap_pct', 'mean'),
+        potential_revenue=('price_gap_pct', lambda x: (x / 100 * listings_copy.loc[x.index, 'price'] * listings_copy.loc[x.index, 'booked_days']).sum())
+    ).sort_values('potential_revenue', ascending=False).head(12).reset_index()
+
+    if leakage.empty: return {}
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        y=leakage['neighbourhood'], x=leakage['underpriced_count'],
+        name='Underpriced Listings', orientation='h', marker_color='#f87171',
+        text=leakage['underpriced_count'], textposition='outside',
+    ))
+    fig.add_trace(go.Scatter(
+        y=leakage['neighbourhood'], x=leakage['avg_gap_pct'],
+        name='Avg Price Gap %', mode='lines+markers', marker=dict(color='#fbbf24', size=10),
+        yaxis='y2', line=dict(width=2),
+    ))
+    fig.update_layout(
+        title='Revenue Leakage Detection: Underpriced Listings by Neighbourhood',
+        height=450, margin=dict(l=20, r=70, t=50, b=20), font=dict(size=11), title_font_size=16,
+        xaxis=dict(title='Number of Underpriced Listings'),
+        xaxis2=dict(title='Avg Price Gap (%)', overlaying='x', side='top', range=[0, 60]),
+        legend=dict(orientation="h", y=1.12),
+    )
+    return fig
+
+
+def get_pricing_optimization_chart():
+    """Room-type pricing recommendations with ideal range."""
+    listings = LISTINGS_DF
+    if listings.empty: return {}
+    room_types = listings['room_type'].unique()
+    fig = go.Figure()
+    for i, rt in enumerate(room_types):
+        sub = listings[listings['room_type'] == rt]['price']
+        if sub.empty: continue
+        p25, p50, p75 = sub.quantile(0.25), sub.quantile(0.50), sub.quantile(0.75)
+        fig.add_trace(go.Bar(
+            name=rt, x=['Recommended Range'], y=[p75 - p25],
+            base=p25, marker_color=list(ROOM_TYPE_COLORS.values())[i],
+            text=[f"€{p25:.0f} – €{p75:.0f}"], textposition='inside',
+            width=0.4,
+        ))
+        fig.add_trace(go.Scatter(
+            name=f"{rt} Median", x=['Recommended Range'], y=[p50],
+            mode='markers', marker=dict(color='white', size=14, symbol='diamond', line=dict(width=2)),
+            showlegend=False,
+        ))
+    fig.update_layout(
+        title='Optimal Pricing Ranges by Room Type (IQR Method)',
+        height=350, barmode='stack', margin=dict(l=20, r=20, t=50, b=20),
+        font=dict(size=11), title_font_size=16, yaxis_tickprefix='€',
+        legend=dict(orientation="h", y=1.12),
+    )
+    return fig
+
+
+# ═══════════════════════════════════════════════════════
+#  HOST GROWTH CHARTS
+# ═══════════════════════════════════════════════════════
+
+def get_host_acquisition_targets_chart():
+    """Neighbourhoods with high demand, low supply — acquisition priority."""
+    surv = get_market_surveillance()
+    if surv.empty: return {}
+    surv['acquisition_score'] = (
+        surv['avg_reviews'].rank(pct=True) * 0.4 +
+        surv['avg_occupancy'].rank(pct=True) * 0.35 +
+        (1 - surv['listing_count'].rank(pct=True)) * 0.25
+    )
+    targets = surv.nlargest(10, 'acquisition_score').sort_values('acquisition_score', ascending=True)
+
+    fig = go.Figure(go.Bar(
+        y=targets['neighbourhood'], x=targets['acquisition_score'],
+        orientation='h', marker=dict(
+            color=targets['acquisition_score'], colorscale='Teal', showscale=False
+        ),
+        text=targets['acquisition_score'].round(2), textposition='outside',
+    ))
+    fig.update_layout(
+        title='Host Acquisition Priority: High Demand, Low Supply Areas',
+        height=380, margin=dict(l=20, r=50, t=50, b=20),
+        xaxis_title='Acquisition Score (higher = more urgent)', font=dict(size=11), title_font_size=16,
+    )
+    return fig
+
+
+def get_host_quality_chart():
+    """Host quality distribution: Superhost potential pipeline."""
+    listings = LISTINGS_DF
+    if listings.empty: return {}
+    bins = [0, 1, 5, 20, 50, float('inf')]
+    labels = ['New (0-1)', 'Rising (2-5)', 'Established (6-20)', 'Veteran (21-50)', 'Superhost (50+)']
+    listings['review_bucket'] = pd.cut(listings['number_of_reviews'], bins=bins, labels=labels)
+
+    quality = listings.groupby('review_bucket', observed=False).agg(
+        count=('id', 'count'), avg_occupancy=('occupancy_pct', 'mean'),
+        avg_price=('price', 'mean'),
+    ).reset_index()
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Bar(x=quality['review_bucket'], y=quality['count'],
+                         name='Hosts', marker_color=BI_COLOR[4],
+                         text=quality['count'], textposition='outside'), secondary_y=False)
+    fig.add_trace(go.Scatter(x=quality['review_bucket'], y=quality['avg_occupancy'],
+                             name='Avg Occupancy %', mode='lines+markers',
+                             marker=dict(color=WARN, size=10), line=dict(width=3)), secondary_y=True)
+    fig.update_layout(title='Host Quality Pipeline: Reviews → Occupancy Correlation',
+                      height=380, margin=dict(l=20, r=20, t=50, b=20),
+                      font=dict(size=11), title_font_size=16,
+                      legend=dict(orientation="h", y=1.12))
+    fig.update_yaxes(title_text="Number of Hosts", secondary_y=False)
+    fig.update_yaxes(title_text="Avg Occupancy (%)", secondary_y=True)
+    return fig
+
+
+# ═══════════════════════════════════════════════════════
+#  TRUST & SAFETY CHARTS
+# ═══════════════════════════════════════════════════════
+
+def get_trust_risk_matrix_chart():
+    """Risk matrix: Unlicensed + Low reviews = trust risk."""
+    listings = LISTINGS_DF
+    surv = get_market_surveillance()
+    if listings.empty or surv.empty: return {}
+
+    risk_df = surv[['neighbourhood', 'licensed_pct', 'professional_host_pct', 'avg_reviews', 'listing_count']].copy()
+    risk_df['trust_score'] = (
+        risk_df['licensed_pct'].rank(pct=True) * 0.4 +
+        (1 - risk_df['professional_host_pct'].rank(pct=True)) * 0.3 +
+        risk_df['avg_reviews'].rank(pct=True) * 0.3
+    ).round(0)
+
+    fig = px.scatter(
+        risk_df, x='licensed_pct', y='avg_reviews', size='listing_count',
+        color='trust_score', hover_name='neighbourhood', text='neighbourhood',
+        title='Trust & Safety Risk Matrix: License Compliance vs Guest Activity',
+        labels={'licensed_pct': 'License Compliance (%)', 'avg_reviews': 'Avg Reviews/Month',
+                'trust_score': 'Trust Score'},
+        color_continuous_scale='RdYlGn', size_max=45,
+    )
+    fig.add_hline(y=risk_df['avg_reviews'].median(), line_dash="dash", line_color="gray", opacity=0.5)
+    fig.add_vline(x=50, line_dash="dash", line_color="red", opacity=0.4)
+    fig.update_traces(textposition='top center', textfont=dict(size=9))
+    fig.update_layout(height=450, margin=dict(l=20, r=20, t=50, b=20),
+                      font=dict(size=11), title_font_size=16)
+    return fig
+
+
+def get_guest_experience_chart():
+    """Minimum nights + review velocity as guest satisfaction proxy."""
+    listings = LISTINGS_DF
+    if listings.empty: return {}
+    df = listings[listings['minimum_nights'] <= 14].copy()
+    exp = df.groupby('minimum_nights', observed=False).agg(
+        listings=('id', 'count'), avg_reviews=('reviews_per_month', 'mean'),
+        avg_price=('price', 'mean'),
+    ).reset_index()
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Bar(x=exp['minimum_nights'], y=exp['listings'],
+                         name='Listings', marker_color=BI_COLOR[4]), secondary_y=False)
+    fig.add_trace(go.Scatter(x=exp['minimum_nights'], y=exp['avg_reviews'],
+                             name='Avg Reviews/Mo', mode='lines+markers',
+                             marker=dict(size=8), line=dict(width=3, color=WARN)), secondary_y=True)
+    fig.update_layout(title='Guest Experience: Minimum Nights vs Review Activity',
+                      height=380, margin=dict(l=20, r=20, t=50, b=20),
+                      font=dict(size=11), title_font_size=16,
+                      legend=dict(orientation="h", y=1.12),
+                      xaxis=dict(title='Minimum Nights', dtick=1))
+    fig.update_yaxes(title_text="Number of Listings", secondary_y=False)
+    fig.update_yaxes(title_text="Avg Reviews/Month", secondary_y=True)
+    return fig
+
+
+# ═══════════════════════════════════════════════════════
+#  ROLE-BASED PLACEHOLDER COMPONENTS
+# ═══════════════════════════════════════════════════════
+
+def get_revenue_waterfall_component():
+    return dcc.Graph(id="exec-waterfall", figure=get_revenue_waterfall_chart(), style={'height':'420px'})
+def get_market_coverage_component():
+    return dcc.Graph(id="exec-coverage", figure=get_market_coverage_chart(), style={'height':'370px'})
+def get_revenue_leakage_component():
+    return dcc.Graph(id="rev-leakage", figure=get_revenue_leakage_chart(), style={'height':'470px'})
+def get_pricing_optimization_component():
+    return dcc.Graph(id="rev-pricing-opt", figure=get_pricing_optimization_chart(), style={'height':'370px'})
+def get_host_acquisition_component():
+    return dcc.Graph(id="host-acquisition", figure=get_host_acquisition_targets_chart(), style={'height':'400px'})
+def get_host_quality_component():
+    return dcc.Graph(id="host-quality", figure=get_host_quality_chart(), style={'height':'400px'})
+def get_trust_risk_component():
+    return dcc.Graph(id="trust-risk", figure=get_trust_risk_matrix_chart(), style={'height':'470px'})
+def get_guest_experience_component():
+    return dcc.Graph(id="trust-guest-exp", figure=get_guest_experience_chart(), style={'height':'400px'})
+
+
+# ═══════════════════════════════════════════════════════
 #  PLACEHOLDER GRAPH COMPONENTS (for layout.py)
 # ═══════════════════════════════════════════════════════
 
